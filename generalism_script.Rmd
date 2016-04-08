@@ -34,6 +34,8 @@ dat$pname <- paste(dat$P_Genus,dat$P_species,sep="_")
 dat$hname <- paste(dat$hgenus,dat$H_species,sep="_")
 dat$hp <- paste(dat$hname,dat$pname,sep="+")
 
+dat <- dat[-which(dat$hname=="Colossoma_macroponum"),]
+
 # extract list of host-parasite associations & traits
 # association traits: Host_stage, GEO
 pairs <- dat %>% select(hname,pname) %>% distinct()
@@ -64,6 +66,7 @@ pairs.g1 <- dat %>% select(hp,hname,pname,GEO) %>% distinct()
 pairs.g1$val <- 1
 pairs.g2 <- spread(pairs.g1,key=GEO,value=val,fill=0)
 pairs.traits <- inner_join(pairs.t,pairs.g2,by=c("hp","hname","pname"))
+
 save(pairs.traits,file="pairs.traits.RData")
 
 ############
@@ -93,7 +96,6 @@ para.dup.in <- read.csv("para.dup.in.csv",stringsAsFactors = FALSE)
 
 para.t <- anti_join(para,para.dup,by="pname")
 para.traits <- rbind(para.t,para.dup.in) %>% arrange(pname)
-# STILL 4 DUPLICATES TO DECIDE ON
 
 save(para.traits,file="para.traits.RData")
 
@@ -116,8 +118,6 @@ host.dup.in <- read.csv("host.dup.in.csv",stringsAsFactors = FALSE)
 host.t <- anti_join(host3,host.dup3,by="hname")
 host.traits <- rbind(host.t,host.dup.in) %>% arrange(hname)
 anyDuplicated(host.traits$hname)
-
-host.traits <- host.traits[-which(host.traits$hname=="Colossoma_macroponum"),] 
 
 save(host.traits,file="host.traits.RData")
 
@@ -174,7 +174,7 @@ host.taxa$H_F[which(host.taxa$H_F == "CLUPIDAE")] <- "CLUPEIDAE"
 host.taxa$H_F[which(host.taxa$H_F == "OSTEOGOGLOSSIDAE")] <- "OSTEOGLOSSIDAE"
 host.taxa$H_O[which(host.taxa$H_F == "SALMINUS")] <- "CHARACIFORMES"
 host.taxa$H_F[which(host.taxa$H_F == "SALMINUS")] <- "BRYCONIDAE"
-# just remove this one, and from host.traits above
+# just remove this one, and from host.traits & pairs above
 host.taxa <- host.taxa[-which(host.taxa$hname=="Colossoma_macroponum"),] 
 
 save(host.taxa,file="host.taxa.RData")
@@ -197,7 +197,7 @@ $$VarS_{TD}=[s(s-1)]^{-1}\sum \sum_{i\neq j}\left (\omega_{ij}-S_{TD}  \right )^
 
 
 * Another method could use host phylogenetic distance (eg from time tree of life) instead of categorized phylogenies
-    + Do we have data for all species?
+    + Do we have data for all species? No
 
 ```{r,cache=TRUE}
 library(ape,suppressPackageStartupMessages())
@@ -220,50 +220,16 @@ paste("number of nodes in pruned tree:", length(pruned.tree$tip.label),sep=" ")
 
 Divergence time data are only available for about a quarter of the host species in the fish database. 
 
-How many parasite species only infect one host in the database?
+Calculate bipartite indices
 
-```{r,cache=TRUE}
-dat.u$P_bin <- paste(dat.u$P_Genus,dat.u$P_species,sep="_")
-dat.u$H_bin <- paste(dat.u$H_Genus,dat.u$H_species,sep="_")
-degree <- dat.u %>% group_by(P_bin) %>% summarize(degree=n_distinct(H_bin),P_Taxon=first(P_Taxon),Host_stage=first(Host_stage),Endoparasite=first(Endoparasite),Gender=first(Gender),Complex=first(Complex.),Sexual=first(Sexual.),Reproduction=first(Reproduction),Host_no=first(Host_no.),Environment_LHS=first(Environment_LHS.),Env_mode=first(Env_mode.),Motile_LHS=first(Motile_LHS.),Vector=first(Vector.),Trophic=first(Trophic.),Horizontal=first(Horizontal.))
-sum(degree$degree == 1)/nrow(degree)
-quantile(degree$degree)
-
-hist(log(degree$degree))
-```
-
-Does degree vary by taxonomic group or other parasite characteristics?
-
-```{r,cache=TRUE}
-boxplot(log(degree$degree) ~ degree$Gender)
-boxplot(log(degree$degree) ~ degree$Host_stage)
-boxplot(log(degree$degree) ~ degree$Endoparasite)
-boxplot(log(degree$degree) ~ degree$Complex)
-boxplot(log(degree$degree) ~ degree$Sexual)
-boxplot(log(degree$degree) ~ degree$Reproduction)
-boxplot(log(degree$degree) ~ degree$Host_no)
-boxplot(log(degree$degree) ~ degree$Environment_LHS)
-boxplot(log(degree$degree) ~ degree$Env_mode)
-boxplot(log(degree$degree) ~ degree$Motile_LHS)
-boxplot(log(degree$degree) ~ degree$Vector)
-boxplot(log(degree$degree) ~ degree$Trophic)
-boxplot(log(degree$degree) ~ degree$Horizontal)
-boxplot(log(degree$degree) ~ degree$P_Taxon)
-```
 
 Calculate S_TD using taxonomic distance from data
 
 ```{r,eval=FALSE}
+load("~/dat/generalismtheory/pairs.traits.RData")
+load("~/dat/generalismtheory/host.taxa.RData")
 
-# calculate distance between each pair of host species (omega_ij) - original reference suggests up to phylum, we only have up to order. I was going to match orders to class but google revealed some controversy so will have to come back to this - any good sources for fish taxonomy?
-dat.u$H_Class <- ""
-dat.u$H_Phylum <- "Chordata"
-
-hosts <- dat.u %>% select(H_O,H_F,H_Genus,H_species,H_Phylum,H_Class) %>% distinct()
-hosts$H_bin <- paste(hosts$H_Genus,hosts$H_species,sep="_")
-sum(table(hosts$H_bin) > 1) # some aren't unique presumably due to differences in capitalization etc at higher levels - check this again after data cleaning
-# for now select unique based on H_bin
-hosts.u <- hosts %>% distinct(H_bin)
+# calculate S_TD from separate data frames
 
 # # http://stackoverflow.com/questions/17171148/non-redundant-version-of-expand-grid
 expand.grid.unique <- function(x, y, include.equals=FALSE)
@@ -290,7 +256,7 @@ get.S_TD <- function(dat) {
   VarS_TD <- NA
   
   if(nrow(dat) > 1) {
-    temp <- data.frame(expand.grid.unique(dat$H_bin,dat$H_bin))
+    temp <- data.frame(expand.grid.unique(dat$hname,dat$hname))
     temp$genus <- 0
     temp$family <- 0
     temp$order <- 0
@@ -298,11 +264,11 @@ get.S_TD <- function(dat) {
     temp$phylum <- 0
     
     for (i in 1:nrow(temp)) {
-      temp2 <- rbind(dat[dat$H_bin == temp$X1[i],],dat[dat$H_bin == temp$X2[i],])
+      temp2 <- rbind(dat[dat$hname == temp$X1[i],],dat[dat$hname == temp$X2[i],])
       temp$genus[i] <- as.numeric(identical(temp2$H_Genus[1],temp2$H_Genus[2]))
       temp$family[i] <- as.numeric(identical(temp2$H_F[1],temp2$H_F[2]))
       temp$order[i] <- as.numeric(identical(temp2$H_O[1],temp2$H_O[2]))
-      temp$class[i] <- as.numeric(identical(temp2$H_Class[1],temp2$H_Class[2]))
+      temp$class[i] <- as.numeric(identical(temp2$H_class[1],temp2$H_class[2]))
       temp$phylum[i] <- as.numeric(identical(temp2$H_Phylum[1],temp2$H_Phylum[2]))
     }
 
@@ -317,17 +283,15 @@ get.S_TD <- function(dat) {
   #return(paste(S_TD,VarS_TD,sep="@"))
 }
 
-dat.u$H_O <- as.character(dat.u$H_O)
-dat.u$H_F <- as.character(dat.u$H_F)
-dat.u$H_Genus <- as.character(dat.u$H_Genus)
+pairswithtaxa <- pairs.traits %>% select(hname,pname) %>% left_join(host.taxa,by=("hname"))
+# test <- pairswithtaxa[which(pairswithtaxa$pname=="Acanthocephaloides_distinctus"),]
+# get.S_TD(test)
 
-#test <- dat.u[1:100,] %>% group_by(P_bin) %>% do(get.S_TD(.))
-# sub <- index[which(is.infinite(index$S_TD)),1]
-# test2 <- dat.u[dat.u$P_bin %in% sub$P_bin,] %>% group_by(P_bin) %>% do(get.S_TD(.))
-
-
-index <- dat.u %>% group_by(P_bin) %>% do(get.S_TD(.)) %>% ungroup()
+index <- pairswithtaxa %>% group_by(pname) %>% do(get.S_TD(.)) %>% ungroup()
 save(index,file="index.RData")
+load("para.traits.RData") # still has 4 duplicates
+
+
 
 ````
 
@@ -360,4 +324,22 @@ boxplot(fulldat$S_TD ~ fulldat$P_Taxon)
 
 ```
 
+Does degree vary by taxonomic group or other parasite characteristics?
+
+```{r,cache=TRUE}
+boxplot(log(degree$degree) ~ degree$Gender)
+boxplot(log(degree$degree) ~ degree$Host_stage)
+boxplot(log(degree$degree) ~ degree$Endoparasite)
+boxplot(log(degree$degree) ~ degree$Complex)
+boxplot(log(degree$degree) ~ degree$Sexual)
+boxplot(log(degree$degree) ~ degree$Reproduction)
+boxplot(log(degree$degree) ~ degree$Host_no)
+boxplot(log(degree$degree) ~ degree$Environment_LHS)
+boxplot(log(degree$degree) ~ degree$Env_mode)
+boxplot(log(degree$degree) ~ degree$Motile_LHS)
+boxplot(log(degree$degree) ~ degree$Vector)
+boxplot(log(degree$degree) ~ degree$Trophic)
+boxplot(log(degree$degree) ~ degree$Horizontal)
+boxplot(log(degree$degree) ~ degree$P_Taxon)
+```
 
