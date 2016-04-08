@@ -9,7 +9,7 @@ The aim of this document is to calculate measures of generalism from the fish da
 
 The data are from the Fish Parasite Ecology Database (http://www.esapubs.org/archive/ecol/E094/045/metadata.php) with crustacean parasites and parasite traits for all species added by Amy Ellison, Jo Cable and team
 
-```{r,cache=TRUE,results="hide"}
+```{r,eval=FALSE}
 # read in data & remove duplicates
 
 library(dplyr,suppressPackageStartupMessages())
@@ -19,12 +19,20 @@ library(tidyr,suppressPackageStartupMessages())
 setwd("~/dat/generalismtheory")
 
 dat <- read.csv("fishparas.csv",header=T)
-dat$pname <- paste(dat$P_Genus,dat$P_species,sep="_")
-dat$hp <- paste(dat$hname,dat$pname,sep="+")
+
 
 # update levels for consistency
 levels(dat$Host_stage) <- c("Both","Both","Definitive","Definitive","Intermediate","nd")
 levels(dat$GEO) <- c(NA,"AFR","ANT","AUS","IND",NA,NA,"NEA","NEO","PAL",NA,NA)
+# correct a few species names - haven't checked all only newly added ones
+dat$H_species[dat$H_species=="insignisC"] <- "insignis"
+dat$H_species[dat$H_species=="Coeruleus"] <- "coeruleus"
+dat$H_species[dat$H_species=="crocodiluscrocodilus"] <- "crocodilus"
+dat$H_species[dat$H_species=="carangis"] <- "carangus"
+
+dat$pname <- paste(dat$P_Genus,dat$P_species,sep="_")
+dat$hname <- paste(dat$hgenus,dat$H_species,sep="_")
+dat$hp <- paste(dat$hname,dat$pname,sep="+")
 
 # extract list of host-parasite associations & traits
 # association traits: Host_stage, GEO
@@ -58,6 +66,7 @@ pairs.g2 <- spread(pairs.g1,key=GEO,value=val,fill=0)
 pairs.traits <- inner_join(pairs.t,pairs.g2,by=c("hp","hname","pname"))
 save(pairs.traits,file="pairs.traits.RData")
 
+############
 
 # extract list of parasite traits
 levels(dat$Endoparasite) <- c("Both","Ecto","Endo","Endo",NA)
@@ -72,82 +81,103 @@ levels(dat$Motile_LHS) <- c(NA,NA,"No","Yes","Yes")
 levels(dat$Vector) <- c(NA,NA,"No","No","Yes")
 levels(dat$Trophic) <- c(NA,NA,NA,NA,"No","Yes")
 levels(dat$Horizontal) <- c(NA,"Yes",NA,"Yes")
+levels(dat$P_Taxon) <- c("A","A","C","C","CR","M","M","N","N","T","T")
 
-para <- dat %>% select(pname,Endoparasite,Gender,Complex,Sexual,Reproduction,Host_no,Environment_LHS,Env_mode,Motile_LHS,Vector,Trophic,Horizontal) %>% distinct() # distinct rows of parasite traits
+para <- dat %>% select(pname,P_Taxon,Endoparasite,Gender,Complex,Sexual,Reproduction,Host_no,Environment_LHS,Env_mode,Motile_LHS,Vector,Trophic,Horizontal) %>% distinct() # distinct rows of parasite traits
 para.dup <- para[duplicated(para$pname) | duplicated(para$pname,fromLast = TRUE),] %>% arrange(pname) # find duplicated parasites
 write.csv(para.dup,file="para.dup.out.csv")
 
 
 # merge back with new row as whole row replacing that parasite name
+para.dup.in <- read.csv("para.dup.in.csv",stringsAsFactors = FALSE)
 
-for(j in 2:ncol(para.dup)) {
-  para.dup[,c(1,j)] %>% group_by(pname,colnames(j)) %>% clean
-}
+para.t <- anti_join(para,para.dup,by="pname")
+para.traits <- rbind(para.t,para.dup.in) %>% arrange(pname)
+# STILL 4 DUPLICATES TO DECIDE ON
 
+save(para.traits,file="para.traits.RData")
 
-# para.dup2 <- para.dup %>% gather(key="characteristic",value="value",-pname,na.rm=FALSE)
-# para.dup3 <- para.dup2[duplicated(para.dup2) | duplicated(para.dup2, fromLast=TRUE),] %>% arrange(pname)
-# 
-# para.dup3 <- para.dup2 %>% group_by(pname,characteristic) %>% do(cleanCol(.[]))
-# 
-cleanCol <- function(d) {
-  ifelse(all(is.na(d)),return(NA),return(paste(d[complete.cases(d)],sep="+")))
-}
-# 
-# 
-# para.dup2 <- para.dup %>% group_by(pname) %>% summarize(cleanCol(.$Endoparasite))
-# 
-# 
-# 
-# para2[which(all(is.na(para2[,1:12])))]
-# para.tax2 <- para2[duplicated(para2$pname) | duplicated(para2$pname, fromLast=TRUE),] %>% arrange(pname) # 93 doubles
-# 
-# 
-# 
-# anyDuplicated(para[,1:4])
-# 
-# 
-# para.2 <- para %>% distinct()
+############
+# host traits
+host <- dat %>% select(hname,MaxL,K,Y,Ym,T,F,B,M,AOO,LAT,LON) %>% distinct() %>% arrange(hname)
+host.dup <- host[duplicated(host$hname) | duplicated(host$hname,fromLast = TRUE),] # not all doubles
+host2 <- anti_join(host,host.dup,by="hname")
 
+# a number of duplicates are the same row filling in
+dub <- host.dup[c(2,42),-1]
+host.dup2 <- anti_join(host.dup,dub,by=c("MaxL", "K", "Y", "Ym", "T", "F", "B", "M", "AOO", "LAT", "LON")) %>% arrange(hname)
 
+host3 <- rbind(host2,host.dup2)
 
+host.dup3 <- host.dup2[duplicated(host.dup2$hname) | duplicated(host.dup2$hname,fromLast = TRUE),]
+write.csv(host.dup3,file="host.dup.out.csv",row.names = FALSE)
 
-# to clean data - should check list of parasite and host species as some spellings are very similar, are these really different species?
-# also values in each characteristic column are not consistent, ie yes/Yes
-names(dat.u)
-levels(dat.u$Host_stage)
-levels(dat.u$Host_stage)[5] <- "Intermediate"
-levels(dat.u$Endoparasite)
-levels(dat.u$Endoparasite)[4:6] <- "Endoparasite"
-levels(dat.u$Gender)
-levels(dat.u$Gender) <- c("","Dioecious","Dioecious","Hermaphrodite","Hermaphrodite","Hermaphrodite")
-levels(dat.u$Complex.)
-levels(dat.u$Complex.) <- c("","",NA,"Simple","Complex","Complex","Complex","Complex","Both")
-levels(dat.u$Sexual.)
-levels(dat.u$Sexual.) <- c("",NA,"Both","Both","Oviparous","Sexual","Sexual","Sexual")
-levels(dat.u$Reproduction)
-levels(dat.u$Reproduction) <- c("",NA,"Oviparous","Oviparous","Oviparous","Ovoviviparous","Ovoviviparous","Sexual","Viviparous") # sexual shouldn't be here?
-levels(dat.u$Host_no.) # how should this be categorized?
-levels(dat.u$Environment_LHS.)
-levels(dat.u$Environment_LHS.) <- c("","No","Yes","Yes")
-levels(dat.u$Env_mode.)
-levels(dat.u$Env_mode.)[4:6] <- "Water" # how should this be categorized?
-levels(dat.u$Motile_LHS.)
-levels(dat.u$Motile_LHS.) <- c("","No","No","Yes","Yes")
-levels(dat.u$Vector.) 
-levels(dat.u$Vector.) <- c("","No","No","Yes")
-levels(dat.u$Trophic.)
-levels(dat.u$Trophic.) <- c("",NA,NA,"No","No","Yes","Yes")
-levels(dat.u$Horizontal.) # Are these all "yes"?
+host.dup.in <- read.csv("host.dup.in.csv",stringsAsFactors = FALSE)
+host.t <- anti_join(host3,host.dup3,by="hname")
+host.traits <- rbind(host.t,host.dup.in) %>% arrange(hname)
+anyDuplicated(host.traits$hname)
 
-## host taxa
-levels(dat.u$H_O)
-levels(dat.u$H_O)[15:17] <- "Characiformes"
-levels(dat.u$H_O)[c(18,20,21)] <- "Cyprinodontiformes"
-levels(dat.u$H_O)[26:27] <- "Gonorhynchiformes" 
-levels(dat.u$H_O)[33:34] <- "Lepidosireniformes"
-levels(dat.u$H_O)[46:47] <- "Perciformes"
-# there are many more to be corrected at lower levels - indices will change if species are added so I won't do this now
+host.traits <- host.traits[-which(host.traits$hname=="Colossoma_macroponum"),] 
+
+save(host.traits,file="host.traits.RData")
+
+#############
+# host taxa - old list with class added plus new ones not on that list
+# old class list
+host.taxa1 <- read.csv("new_hostlist_wclass.csv",stringsAsFactors = FALSE)
+#anyDuplicated(host.taxa$H_bin)
+host.taxa2 <- host.taxa1 %>% select(-H_O.1,-uid)
+host.taxa2$H_O[which(host.taxa2$H_O=="Tetradontiformes")] <- "Tetraodontiformes"
+host.taxa2$H_F <- toupper(host.taxa2$H_F)
+host.taxa2$H_O <- toupper(host.taxa2$H_O)
+host.taxa3 <- distinct(host.taxa2)
+
+# which hosts do we not have data on?
+taxa <- dat %>% select(hname,H_O,H_F,hgenus,H_species) %>% distinct(hname) %>% arrange(hname)
+taxa2 <- anti_join(taxa,host.taxa3,by=c("hname"="H_bin")) %>% arrange(hname)
+#anyDuplicated(taxa2$hname)
+
+write.csv(taxa2,file="newhostnames.csv")
+new <- read.csv("newhostnames-class.csv") 
+newtaxa <- new %>% select(-uid)
+names(newtaxa) <- c("H_bin","H_O","H_F","H_Genus","H_species","H_class")
+newtaxa$H_Phylum <- "Chordata"
+
+# look at which ones from the old list aren't in new dat - mostly have capital & space issues that must have been corrected already
+taxarev <- anti_join(host.taxa3,taxa,by=c("H_bin"="hname")) %>% arrange(H_bin) 
+
+# exclude taxa which aren't in new dat
+taxa3 <- anti_join(host.taxa3,taxarev,by=("H_bin"))
+
+# group old and new
+alltaxa <- bind_rows(newtaxa,taxa3)
+names(alltaxa)[1] <- "hname"
+
+taxa.dup <- alltaxa[duplicated(alltaxa$hname) | duplicated(alltaxa$hname,fromLast = TRUE),] %>% arrange(hname)
+taxa.notdup <- anti_join(alltaxa,taxa.dup,by="hname")
+
+# write csv
+write.csv(taxa.dup,file="taxa.dup.out.csv")
+
+taxa.dup.in <- read.csv("taxa.dup.in.csv")
+
+# merge new and old host names
+host.taxa <- bind_rows(taxa.notdup,taxa.dup.in) %>% arrange(hname)
+host.taxa$H_F <- toupper(host.taxa$H_F)
+host.taxa$H_O <- toupper(host.taxa$H_O)
+
+# correct spelling errors
+host.taxa$H_O[which(host.taxa$H_O == "TETRADONTIFORMES")] <- "TETRAODONTIFORMES"
+host.taxa$H_F[which(host.taxa$H_F == "TETRADONTIDAE")] <- "TETRAODONTIDAE"
+host.taxa$H_F[which(host.taxa$H_F == "CENTROLOPPHIDAE")] <- "CENTROLOPHIDAE"
+host.taxa$H_F[which(host.taxa$H_F == "CLUPIDAE")] <- "CLUPEIDAE"
+host.taxa$H_F[which(host.taxa$H_F == "OSTEOGOGLOSSIDAE")] <- "OSTEOGLOSSIDAE"
+host.taxa$H_O[which(host.taxa$H_F == "SALMINUS")] <- "CHARACIFORMES"
+host.taxa$H_F[which(host.taxa$H_F == "SALMINUS")] <- "BRYCONIDAE"
+# just remove this one, and from host.traits above
+host.taxa <- host.taxa[-which(host.taxa$hname=="Colossoma_macroponum"),] 
+
+save(host.taxa,file="host.taxa.RData")
 
 ```
 
