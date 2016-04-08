@@ -1,25 +1,115 @@
 ---
-title: "Generalism Index"
+title: "Is generalism of fish macroparasites associated with parasite and/or host traits?"
 author: "Josephine Walker"
-date: "March 27, 2016"
+date: "8 April 2016"
 output: pdf_document
 ---
 
 The aim of this document is to calculate measures of generalism from the fish database, and assess the distribution of generalism scores by parasite characteristics.
 
-The [preliminary] data are from the Fish Parasite Ecology Database with parasite characteristics added by Amy Ellison and Jo Cable (http://www.esapubs.org/archive/ecol/E094/045/metadata.php)
+The data are from the Fish Parasite Ecology Database (http://www.esapubs.org/archive/ecol/E094/045/metadata.php) with crustacean parasites and parasite traits for all species added by Amy Ellison, Jo Cable and team
 
 ```{r,cache=TRUE,results="hide"}
 # read in data & remove duplicates
 
 library(dplyr,suppressPackageStartupMessages())
+library(tidyr,suppressPackageStartupMessages())
 
-setwd("C:/Users/Josephine/Google Drive/Conferences and Courses/Transmission retreat")
+# set working directory to data location
+setwd("~/dat/generalismtheory")
 
-dat <- read.csv("fishparasites.csv")
+dat <- read.csv("fishparas.csv",header=T)
+dat$pname <- paste(dat$P_Genus,dat$P_species,sep="_")
+dat$hp <- paste(dat$hname,dat$pname,sep="+")
 
-u <- dat %>% select(P_Genus,P_species,H_Genus,H_species) %>% duplicated(MARGIN=1) %>% which()
-dat.u <- dat[-u,]
+# update levels for consistency
+levels(dat$Host_stage) <- c("Both","Both","Definitive","Definitive","Intermediate","nd")
+levels(dat$GEO) <- c(NA,"AFR","ANT","AUS","IND",NA,NA,"NEA","NEO","PAL",NA,NA)
+
+# extract list of host-parasite associations & traits
+# association traits: Host_stage, GEO
+pairs <- dat %>% select(hname,pname) %>% distinct()
+
+# clean Host_stage
+pairs.t1 <- dat %>% select(hp,hname,pname,Host_stage) %>% distinct()
+pairs.dup <- pairs.t1[duplicated(pairs.t1[,1:2]) | duplicated(pairs.t1[,1:2], fromLast=TRUE),] %>% arrange(hname,pname) # all doubles 
+
+cleanHS <- function(d) {
+  if(any(d$Host_stage=="nd")) {
+    new <- as.character(d$Host_stage[d$Host_stage!="nd"])
+    return(new)
+  }
+  if(any(d$Host_stage=="Both")) {return("Both")}
+  if(any(d$Host_stage=="Intermediate") & any(d$Host_stage=="Definitive")) {return("Both")}
+}
+
+pairs.new <- pairs.dup %>% group_by(hname,pname) %>% do(newHS=cleanHS(.))
+pairs.new$newHS <- as.character(pairs.new$newHS)
+# put back together
+pairs.t2 <- left_join(pairs.t1,pairs.new,by=c("hname","pname"))
+pairs.t2$Host_stage[!is.na(pairs.t2$newHS)] <- pairs.t2$newHS[!is.na(pairs.t2$newHS)]
+pairs.t <- distinct(pairs.t2)
+pairs.t$newHS <- NULL
+
+# come back to GEO
+pairs.g1 <- dat %>% select(hp,hname,pname,GEO) %>% distinct()
+pairs.g1$val <- 1
+pairs.g2 <- spread(pairs.g1,key=GEO,value=val,fill=0)
+pairs.traits <- inner_join(pairs.t,pairs.g2,by=c("hp","hname","pname"))
+save(pairs.traits,file="pairs.traits.RData")
+
+
+# extract list of parasite traits
+levels(dat$Endoparasite) <- c("Both","Ecto","Endo","Endo",NA)
+levels(dat$Gender) <- c("Dioecious","Hermaphrodite","Hermaphrodite",NA)
+levels(dat$Complex) <- c(NA,NA,"No","Yes","Yes_No")
+levels(dat$Sexual) <- c(NA,"Both",NA,"Sexual","Sexual","Sexual")
+levels(dat$Reproduction)[1:2] <- c(NA,NA)
+levels(dat$Host_no)[c(1,8)] <- c(NA,NA)
+levels(dat$Environment_LHS)[1:2] <- c(NA,NA)
+levels(dat$Env_mode) <- c(NA,"napp",NA,"Water","Water")
+levels(dat$Motile_LHS) <- c(NA,NA,"No","Yes","Yes")
+levels(dat$Vector) <- c(NA,NA,"No","No","Yes")
+levels(dat$Trophic) <- c(NA,NA,NA,NA,"No","Yes")
+levels(dat$Horizontal) <- c(NA,"Yes",NA,"Yes")
+
+para <- dat %>% select(pname,Endoparasite,Gender,Complex,Sexual,Reproduction,Host_no,Environment_LHS,Env_mode,Motile_LHS,Vector,Trophic,Horizontal) %>% distinct() # distinct rows of parasite traits
+para.dup <- para[duplicated(para$pname) | duplicated(para$pname,fromLast = TRUE),] %>% arrange(pname) # find duplicated parasites
+write.csv(para.dup,file="para.dup.out.csv")
+
+
+# merge back with new row as whole row replacing that parasite name
+
+for(j in 2:ncol(para.dup)) {
+  para.dup[,c(1,j)] %>% group_by(pname,colnames(j)) %>% clean
+}
+
+
+# para.dup2 <- para.dup %>% gather(key="characteristic",value="value",-pname,na.rm=FALSE)
+# para.dup3 <- para.dup2[duplicated(para.dup2) | duplicated(para.dup2, fromLast=TRUE),] %>% arrange(pname)
+# 
+# para.dup3 <- para.dup2 %>% group_by(pname,characteristic) %>% do(cleanCol(.[]))
+# 
+cleanCol <- function(d) {
+  ifelse(all(is.na(d)),return(NA),return(paste(d[complete.cases(d)],sep="+")))
+}
+# 
+# 
+# para.dup2 <- para.dup %>% group_by(pname) %>% summarize(cleanCol(.$Endoparasite))
+# 
+# 
+# 
+# para2[which(all(is.na(para2[,1:12])))]
+# para.tax2 <- para2[duplicated(para2$pname) | duplicated(para2$pname, fromLast=TRUE),] %>% arrange(pname) # 93 doubles
+# 
+# 
+# 
+# anyDuplicated(para[,1:4])
+# 
+# 
+# para.2 <- para %>% distinct()
+
+
 
 
 # to clean data - should check list of parasite and host species as some spellings are very similar, are these really different species?
