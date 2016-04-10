@@ -4,8 +4,9 @@ author: "Josephine Walker"
 date: "8 April 2016"
 output: pdf_document
 ---
+THIS DOCUMENT IS NOW ONLY DATA CLEANING AND PRELIMINARY ANALYSIS
 
-The aim of this document is to calculate measures of generalism from the fish database, and assess the distribution of generalism scores by parasite characteristics.
+The aim of this document is to calculate measures of generalism from the fish database (and assess the distribution of generalism scores by parasite and host characteristics).
 
 The data are from the Fish Parasite Ecology Database (http://www.esapubs.org/archive/ecol/E094/045/metadata.php) with crustacean parasites and parasite traits for all species added by Amy Ellison, Jo Cable and team
 
@@ -183,7 +184,7 @@ save(host.taxa,file="host.taxa.RData")
 
 Generalism of the parasites can be calculated in a variety of ways, and may take into account relative prevalence, abundance and/or relatedness between host species [Poulin & Mouillot 2003, 2005]. Other indices account for connectedness within a host-parasite network and may account for prevalence or abundance [Dormann].  
 
-In this data set, we don't have information on number of parasites per host or on prevalence or study effort, only reported associations between hosts and parasites. As a result we calculate only:
+In this data set, we don't have information on number of parasites per host or on prevalence or study effort, only reported associations between hosts and parasites. As a result we calculate:
 
 * **Degree**: the number of host species a parasite is associated with
 * **$S_{TD}$**: the average taxonomic distinctness of all host species used by a parasite species [Poulin & Mouillot 2003]: $$S_{TD}=2[s(s-1)]^{-1}\sum \sum_{i<j} \omega_{ij}$$
@@ -192,14 +193,10 @@ In this data set, we don't have information on number of parasites per host or o
 $$VarS_{TD}=[s(s-1)]^{-1}\sum \sum_{i\neq j}\left (\omega_{ij}-S_{TD}  \right )^2$$
     But this is the same as: $$VarS_{TD}=2[s(s-1)]^{-1}\sum \sum_{i< j}\left (\omega_{ij}-S_{TD}  \right )^2$$
 
-
-
-
-
 * Another method could use host phylogenetic distance (eg from time tree of life) instead of categorized phylogenies
-    + Do we have data for all species? No
+    + Do we have data for all species? No - come back to this if we do. Divergence time data are only available for about a quarter of the host species in the fish database. 
 
-```{r,cache=TRUE}
+```{r,cache=TRUE,eval=FALSE}
 library(ape,suppressPackageStartupMessages())
 
 tree <- read.tree("C:/Users/Josephine/Google Drive/Thesis/Chapter 3 (Community Ecology)/ch3 stuff/TimetreeOfLife2015.nwk")
@@ -216,11 +213,6 @@ paste("number of nodes in pruned tree:", length(pruned.tree$tip.label),sep=" ")
 
 
 ```
-
-
-Divergence time data are only available for about a quarter of the host species in the fish database. 
-
-Calculate bipartite indices
 
 
 Calculate S_TD using taxonomic distance from data
@@ -289,21 +281,19 @@ pairswithtaxa <- pairs.traits %>% select(hname,pname) %>% left_join(host.taxa,by
 
 index <- pairswithtaxa %>% group_by(pname) %>% do(get.S_TD(.)) %>% ungroup()
 save(index,file="index.RData")
-load("para.traits.RData") # still has 4 duplicates
-
-
+load("para.traits.RData") 
 
 ````
 
 The triangular scatter of the index matches what was observed in Poulin & Mouillot 2003.
 
-```{r,cache=TRUE}
+```{r,cache=TRUE,eval=FALSE}
 load("index.RData")
 plot(x=index$degree,y=index$S_TD)
 plot(x=log10(index$degree),y=index$S_TD)
 
 #boxplots by parasite characteristic
-fulldat <- full_join(degree,index,by=c("P_bin","degree"))
+#this is old fulldat <- full_join(para.traits,index,by=c("P_bin","degree"))
 # dim correct
 
 boxplot(fulldat$S_TD ~ fulldat$Gender)
@@ -326,7 +316,7 @@ boxplot(fulldat$S_TD ~ fulldat$P_Taxon)
 
 Does degree vary by taxonomic group or other parasite characteristics?
 
-```{r,cache=TRUE}
+```{r,cache=TRUE,eval=FALSE}
 boxplot(log(degree$degree) ~ degree$Gender)
 boxplot(log(degree$degree) ~ degree$Host_stage)
 boxplot(log(degree$degree) ~ degree$Endoparasite)
@@ -341,5 +331,23 @@ boxplot(log(degree$degree) ~ degree$Vector)
 boxplot(log(degree$degree) ~ degree$Trophic)
 boxplot(log(degree$degree) ~ degree$Horizontal)
 boxplot(log(degree$degree) ~ degree$P_Taxon)
+```
+
+Calculate indices based on network:
+
+```{r,eval=FALSE}
+library(bipartite)
+bipindex <- specieslevel(test$Definitive,index=c("betweenness","NS","closeness"))
+# above doesn't work - will take forever! narrow down.
+
+
+
+```
+
+Need to save final data with indices included! Merge the data back together to use in calc and anaysis script.
+
+```{r}
+
+
 ```
 
