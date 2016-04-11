@@ -336,17 +336,36 @@ boxplot(log(degree$degree) ~ degree$P_Taxon)
 Calculate indices based on network:
 
 ```{r,eval=FALSE}
+load("~/dat/generalismtheory/host.taxa.RData")
+load("~/dat/generalismtheory/host.traits.RData")
+load("~/dat/generalismtheory/index.RData")
+load("~/dat/generalismtheory/pairs.traits.RData")
+load("~/dat/generalismtheory/para.traits.RData")
+
+
 library(bipartite)
-bipindex <- specieslevel(test$Definitive,index=c("betweenness","NS","closeness"))
-# above doesn't work - will take forever! narrow down.
+pairsweb <- frame2webs(pairs.traits,varnames=c("hname","pname","Host_stage"))
 
+bipindex <- specieslevel(pairsweb$Intermediate,level="lower",index="betweenness") # only took 1 minute
+bipindex$hname <- row.names(bipindex)
+bipindex$network <- "Intermediate"
+bipindexDef <- specieslevel(pairsweb$Definitive,level="lower",index="betweenness") # takes long...
+bipindexDef$hname <- row.names(bipindexDef)
+bipindexDef$network <- "Definitive"
 
+bipindices <- bind_rows(bipindex,bipindexDef)
+host.ind <- full_join(host.traits,bipindices,by="hname")
+save(host.ind,file="~/git/generalismtheory/host.ind.RData")
+
+para.ind <- full_join(para.traits,index,by="pname")
+save(para.ind,file="~/git/generalismtheory/para.ind.RData")
 
 ```
 
 Need to save final data with indices included! Merge the data back together to use in calc and anaysis script.
 
 ```{r}
+
 
 
 ```
