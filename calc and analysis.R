@@ -91,3 +91,11 @@ png("~/dat/generalismtheory/trophic.png")
 qplot(data=para.ind.long,x=Trophic,y=value,colour=P_Taxon) + facet_grid(P_Taxon ~ index) + geom_boxplot() + scale_y_log10() + theme_bw() 
 dev.off()
 
+
+para.ind.longT <- para.ind %>% gather(key="TraitType",value="TraitValue",Endoparasite:Horizontal)
+sumPara <- para.ind.longT %>% select(-pname) %>% group_by(TraitType,TraitValue,P_Taxon) %>% summarize_each(funs(mean(.,na.rm=T),q.025=quantile(.,probs=(0.025),na.rm=T),q.975=quantile(.,probs=(0.975),na.rm=T),n=length,sd(.,na.rm=T)))
+sumParaTot  <- para.ind.longT %>% select(-pname,-P_Taxon) %>% group_by(TraitType,TraitValue) %>% summarize_each(funs(mean(.,na.rm=T),q.025=quantile(.,probs=(0.025),na.rm=T),q.975=quantile(.,probs=(0.975),na.rm=T),n=length,sd(.,na.rm=T))) %>% mutate(P_Taxon="Total") %>% bind_rows(sumPara)
+
+write.csv(sumParaTot,"~/git/generalismtheory/summary_parasitetraits.csv")
+
+
