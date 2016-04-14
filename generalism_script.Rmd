@@ -346,6 +346,19 @@ load("~/dat/generalismtheory/para.traits.RData")
 library(bipartite)
 pairsweb <- frame2webs(pairs.traits,varnames=c("hname","pname","Host_stage"))
 
+# add here - and set R to calculate overnight... still to commit...four versions of web, both levels
+pairs.traits$full <- 1
+pairswebfull <- frame2webs(pairs.traits, varnames=c("hname","pname","full"))
+##
+bipindexBoth <- specieslevel(pairsweb$Both,index="betweenness") # only this one finished...
+save(bipindexBoth,file="~/dat/generalismtheory/bipindexBoth.RData")
+bipindexDef <- specieslevel(pairsweb$Definitive,index="betweenness")
+bipindexFull <- specieslevel(pairswebfull,index="betweenness")
+bipindexInter <- specieslevel(pairsweb$Intermediate,index="betweenness")
+
+
+######
+
 bipindex <- specieslevel(pairsweb$Intermediate,level="lower",index="betweenness") # only took 1 minute
 bipindex$hname <- row.names(bipindex)
 bipindex$network <- "Intermediate"
