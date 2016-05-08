@@ -1,5 +1,5 @@
 # Generalism Score Calculation and Analysis
-# 10 April 2016
+# 8 May 2016
 ###############################
 
 # packages
@@ -16,18 +16,85 @@ library(ggplot2)
 ###############################
 # Read in clean data
 ###############################
-load("~/git/generalismtheory/para.ind.RData") 
-load("~/git/generalismtheory/host.ind.RData") 
+load("~/dat/generalismtheory/hp.full.simple.RData")
+load("~/dat/generalismtheory/hp.full.geo.stage.RData")
+load("~/dat/generalismtheory/hp.host.sum.RData")
 
 ###############################
-# Hosts
+# Not divided by Geo & Stage
 ###############################
 
 # Is maximum host body length associated with generalism?
-summary(lm(data=host.ind, betweenness ~ MaxL*network))
-bmp("~/dat/generalismtheory/MaxL.bmp")
-qplot(data=host.ind,x=MaxL,y=betweenness,color=network) + geom_point() + theme_bw() + geom_smooth(method=loess) + scale_y_log10()
+m1 <- lm(data=hp.full.simple, log(degree) ~ meanMaxL)
+summary(m1)
+plot(m1)
+pdf("~/dat/generalismtheory/MaxL-degree.pdf")
+qplot(data=hp.full.simple,x=meanMaxL,y=degree) + geom_jitter() + theme_bw() 
 dev.off()
+
+with(hp.full.simple,cor.test(meanMaxL,degree,method="spearman"))
+
+hp.full.simple$gen <- FALSE
+hp.full.simple$gen[hp.full.simple$degree > 1] <- TRUE
+
+m2 <- lm(data=hp.full.simple, gen ~ meanMaxL)
+summary(m2)
+
+pdf("~/dat/generalismtheory/MaxL-gen.pdf")
+qplot(data=hp.full.simple,y=meanMaxL,x=gen) + geom_violin() + theme_bw() 
+dev.off()
+
+## try zip model? not really biologically relevant
+
+# look at endos only
+hp.endo <- hp.full.simple %>% filter(Endoparasite =="Endo")
+qplot(data=hp.endo,y=meanMaxL,x=gen) + geom_violin() + theme_bw() 
+bmp("endo-deg.bmp")
+qplot(data=hp.endo,x=meanMaxL,y=degree) + geom_jitter() + theme_bw()
+dev.off()
+with(hp.endo,cor.test(meanMaxL,degree,method="spearman"))
+with(hp.endo,cor.test(meanMaxL,as.numeric(gen),method="spearman"))
+with(hp.endo,wilcox.test(meanMaxL~gen))
+hp.endo %>% group_by(gen) %>% summarize(mean=mean(meanMaxL,na.rm=T),median=median(meanMaxL,na.rm=T))
+# mean is higher for non-generalists 
+#summary(lm(data=hp.endo,degree ~ meanMaxL))
+
+bmp("endo-std.bmp")
+qplot(data=hp.endo,x=meanMaxL,y=S_TD) + geom_point() + theme_bw() 
+dev.off()
+with(hp.endo,cor.test(meanMaxL,S_TD,method="spearman"))
+summary(lm(data=hp.endo, S_TD ~ meanMaxL))
+plot(lm(data=hp.endo, S_TD ~ meanMaxL))
+
+# what about variance - much stronger correlation - only sd when there is more than one host...
+bmp("endo-deg-var.bmp")
+qplot(data=hp.endo,x=sdMaxL,y=degree) + geom_jitter() + theme_bw() 
+dev.off()
+with(hp.endo,cor.test(sdMaxL,degree,method="spearman"))
+bmp("endo-std-var.bmp")
+qplot(data=hp.endo,x=sdMaxL,y=S_TD) + geom_point() + theme_bw() 
+dev.off()
+with(hp.endo,cor.test(sdMaxL,S_TD,method="spearman"))
+
+
+# host perspective on body size/generalism relationship
+hphost2 <- hp.host.sum %>% gather("index","value",3:6)
+bmp("maxL-host.bmp")
+qplot(data=hphost2,x=maxL,y=value) + geom_jitter() + theme_bw() + facet_wrap(ncol=2,~index,scales="free")
+dev.off()
+# qplot(data=hp.host.sum,x=maxL,y=meandeg) + geom_jitter() + theme_bw() 
+# qplot(data=hp.host.sum,x=maxL,y=meddeg) + geom_jitter() + theme_bw()
+# qplot(data=hp.host.sum,x=maxL,y=meanSTD) + geom_jitter() + theme_bw()
+# qplot(data=hp.host.sum,x=maxL,y=meanVarS_TD) + geom_jitter() + theme_bw() 
+
+dev.off()
+
+with(hp.host.sum,cor.test(maxL,meandeg,method="spearman"))
+with(hp.host.sum,cor.test(maxL,meddeg,method="spearman"))
+with(hp.host.sum,cor.test(maxL,meanSTD,method="spearman"))
+with(hp.host.sum,cor.test(maxL,meanVarS_TD,method="spearman"))
+
+######################################################
 
 # Is host growth rate associated with generalism?
 summary(lm(data=host.ind, betweenness ~ as.numeric(K)*network))
