@@ -1,0 +1,70 @@
+---
+title: "Generalism data results"
+author: "Josephine Walker"
+date: "14 May 2016"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, echo=FALSE,warning=FALSE,error=FALSE,message=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+## Prediction 1: It is easier for generalist endoparasites to invade if the available hosts are large-bodied
+I looked for a relationship between the mean, coefficient of variation ($\sigma/\mu$) and maximum MaxL (fish host length) value for each parasite’s hosts and each of the four parasite generalism indices (*degree*, the number of hosts; *gen*, a binary of whether the parasite has more than one host; *S~TD~*, the average taxonomic distance between the hosts; and *VarS~TD~*, the variance of *S~TD~*).
+
+```{r maxl,echo=FALSE,warning=FALSE}
+load("~/dat/generalismtheory/hp.full.simple.RData")
+
+hp.endo <- hp.full.simple %>% filter(Endoparasite =="Endo")
+hp.endo$gen <- FALSE
+hp.endo$gen[hp.endo$degree > 1] <- TRUE
+endolong <- hp.endo %>% gather("index","value",10:13)
+
+ggplot(data=endolong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value")
+
+mnMaxLdeg <- with(hp.endo,cor.test(meanMaxL,degree,method="spearman"))
+mnMaxLgen <- with(hp.endo,cor.test(meanMaxL,as.numeric(gen),method="spearman"))
+mnMaxLstd <- with(hp.endo,cor.test(meanMaxL,S_TD,method="spearman"))
+mnMaxLvstd <- with(hp.endo,cor.test(meanMaxL,VarS_TD,method="spearman"))
+# hp.endo %>% group_by(gen) %>% summarize(mean=mean(meanMaxL,na.rm=T),median=median(meanMaxL,na.rm=T))
+
+hp.endoDirect <- hp.endo %>% filter(Complex=="No")
+
+qplot(data=hp.endoDirect,x=meanMaxL,y=degree) + geom_smooth(method = "lm")
+qplot(data=hp.endoDirect,x=maxMaxL,y=degree) + geom_smooth(method = "lm")
+
+
+endoDlong <- hp.endoDirect %>% gather("index","value",10:13)
+ggplot(data=endoDlong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+ggplot(data=endoDlong,aes(x=maxMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+
+endoDlong2 <- endoDlong %>% gather("length_measure","length",7:9)
+ggplot(data=endoDlong2,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(length_measure~index,scales="free") + ylab("index value") + geom_smooth(method="lm")
+
+endoDlong$cvmaxL <- endoDlong$sdMaxL/endoDlong$meanMaxL
+ggplot(data=endoDlong,aes(x=cvmaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+
+summary(lm(hp.endoDirect$VarS_TD ~ hp.endoDirect$cvmaxL))
+summary(lm(hp.endoDirect$S_TD ~ hp.endoDirect$sdMaxL))
+cor.test(hp.endoDirect$S_TD, hp.endoDirect$sdMaxL,method="spearman")
+cor.test(hp.endoDirect$VarS_TD, hp.endoDirect$maxMaxL,method="spearman")
+```
+
+## Large-bodied hosts are more likely to be infected by generalist than specialist endoparasites
+and maximum and CV - sd/mean? `r mnMaxLdeg$estimate`
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+
+load("~/dat/generalismtheory/hp.full.geo.stage.RData")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

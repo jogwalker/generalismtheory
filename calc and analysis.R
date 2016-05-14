@@ -94,6 +94,17 @@ with(hp.host.sum,cor.test(maxL,meddeg,method="spearman"))
 with(hp.host.sum,cor.test(maxL,meanSTD,method="spearman"))
 with(hp.host.sum,cor.test(maxL,meanVarS_TD,method="spearman"))
 
+
+
+
+
+
+
+
+
+
+
+
 ######################################################
 
 # Is host growth rate associated with generalism?

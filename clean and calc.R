@@ -106,24 +106,37 @@ get.S_TD <- function(hname,genus,family,order,class,phylum) {
 
 index <- dat.ph.drop %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
 
+save(index,file="~/dat/generalismtheory/index.RData")
+
+load("~/dat/generalismtheory/index.RData")
 #ind.ph2 <- left_join(dat.ph.drop,index,by="new_pname")
 
 # # only if definitive...
 # ind.def <- ind.ph2 %>% filter(Host_stage=="Definitive" | Host_stage=="Both")
 
 # this takes a long long time to calculate...not feasible (run overnight)
-bip <- dplyr::select(dat.ph.drop,new_pname,new_hname) %>% distinct()
-bip$group <- "a"
-library(bipartite)
-pairsweb <- frame2webs(bip,varnames=c("new_hname","new_pname","group"))
-bipindex <- specieslevel(pairsweb$a,level="higher",index="betweenness")
+###bip <- dplyr::select(dat.ph.drop,new_pname,new_hname) %>% distinct()
+###write.table(bip,file="associations.txt")
+# bip$group <- "a"
+# library(bipartite)
+# pairsweb <- frame2webs(bip,varnames=c("new_hname","new_pname","group"))
+# bipindex <- specieslevel(pairsweb$a,level="higher",index="betweenness")
+# save(bipindex,file="bipindex.RData")
 
 # summarize traits - mean and sd host traits by parasite
 # clean out duplicates
 
 host.traits <- dat.ph.drop %>% select(GEO,MaxL,new_hname) %>% group_by(new_hname,GEO) %>% summarize(maxL=max(MaxL,na.rm=T))
 
-par.traits <- dat.ph.drop %>% select(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>%  filter(!is.na(new_pname))  %>% filter(!(new_pname=="Spiracanthus bovichthys" & P_Taxon=="M")) %>% filter(!(new_pname=="Neoechinorhynchus cylindratus" & P_Taxon=="M")) %>% arrange(new_pname,Endoparasite,Complex,Trophic,Horizontal) %>% distinct(new_pname)
+par.traits <- dat.ph.drop %>% select(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal,Host_no,Host_stage) %>%  filter(!is.na(new_pname))  %>% filter(!(new_pname=="Spiracanthus bovichthys" & P_Taxon=="M")) %>% filter(!(new_pname=="Neoechinorhynchus cylindratus" & P_Taxon=="M")) %>% arrange(new_pname,Endoparasite,Complex,Trophic,Horizontal) %>% distinct(new_pname)
+
+summary(par.traits) # look at complex - host no. how many are complex? intermediate vs definitive? only look at...??
+table(par.traits$Host_no,par.traits$Complex,par.traits$Host_stage,useNA="ifany")
+
+par.traits$new_Complex <- par.traits$Complex
+par.traits$new_Complex[as.numeric(par.traits$Host_no) > 1 & par.traits$Complex=="No"] <- NA # factor level 1 is "1"
+#endo.direct <- par.traits %>% filter(Endoparasite=="Endo")
+complexNA <- par.traits[which(is.na(par.traits$Complex)),]
 
 #### HOW SHOULD I USE THIS DISTINCTION? What does NA mean? 
 hp <- dat.ph.drop %>% select(new_pname,new_hname,Host_stage,GEO) %>% distinct()
@@ -139,7 +152,9 @@ hp.traits <- left_join(hp.htraits,par.traits,by=c("new_pname"))
 
 hp.psum.geo <- hp.traits %>% group_by(new_pname,GEO,Definitive,Intermediate,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T)) # THIS IS NOT DIVIDED BY INTERMEDIATE/DEFINITIVE
 
-hp.psum.nogeo <- hp.traits %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T))
+
+hp.traits2 <- hp.traits %>% select(-GEO) %>% distinct()
+hp.psum.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
 
 
 #
