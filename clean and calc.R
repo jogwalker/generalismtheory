@@ -106,6 +106,7 @@ get.S_TD <- function(hname,genus,family,order,class,phylum) {
 
 index <- dat.ph.drop %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
 
+
 save(index,file="~/dat/generalismtheory/index.RData")
 
 load("~/dat/generalismtheory/index.RData")
@@ -145,6 +146,19 @@ hp$Definitive[hp$Host_stage=="Definitive" | hp$Host_stage=="Both"] <- 1
 hp$Intermediate <- 0
 hp$Intermediate[hp$Host_stage=="Intermediate" | hp$Host_stage=="Both"] <- 1
 
+# make new index only for definitive hosts
+dat.ph.2 <- dat.ph.drop
+dat.ph.2$Definitive <- 0
+dat.ph.2$Definitive[dat.ph.2$Host_stage=="Definitive" | dat.ph.2$Host_stage=="Both"] <- 1
+dat.ph.2$Intermediate <- 0
+dat.ph.2$Intermediate[dat.ph.2$Host_stage=="Intermediate" | dat.ph.2$Host_stage=="Both"] <- 1
+
+with(dat.ph.2,table(Complex,Host_stage,useNA="ifany"))
+
+dat.ph.def <- dat.ph.2 %>% filter(Definitive==1)
+
+index.complex <- dat.ph.def %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
+
 hp.htraits <- left_join(hp,host.traits,by=c("new_hname","GEO"))
 hp.traits <- left_join(hp.htraits,par.traits,by=c("new_pname"))
 
@@ -152,6 +166,7 @@ hp.traits <- left_join(hp.htraits,par.traits,by=c("new_pname"))
 
 hp.psum.geo <- hp.traits %>% group_by(new_pname,GEO,Definitive,Intermediate,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T)) # THIS IS NOT DIVIDED BY INTERMEDIATE/DEFINITIVE
 
+hp.geo <- hp.traits %>% group_by(new_pname,GEO,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
 
 hp.traits2 <- hp.traits %>% select(-GEO) %>% distinct()
 hp.psum.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
@@ -160,14 +175,18 @@ hp.psum.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,
 #
 hp.full.simple <- left_join(hp.psum.nogeo,index,by="new_pname")
 hp.full.geo.stage <-  left_join(hp.psum.geo,index,by="new_pname")
+hp.full.geo <- left_join(hp.geo,index,by="new_pname")
 
 hp.host <- left_join(hp.traits,index,by="new_pname")
 hp.host.sum <- hp.host %>% group_by(new_hname) %>% summarize(maxL=max(maxL,na.rm=T),meandeg=mean(degree),meddeg=median(degree),meanSTD=mean(S_TD),meanVarS_TD=mean(VarS_TD,na.rm=T))
 
+hp.def <- left_join(index.complex,hp.psum.nogeo,by="new_pname")
+save(hp.def,file="hp.def.RData")
+
 save(hp.full.simple,file="hp.full.simple.RData")
 save(hp.full.geo.stage,file="hp.full.geo.stage.RData")
 save(hp.host.sum,file="hp.host.sum.RData")
-
+save(hp.full.geo,file="hp.full.geo.RData")
 
 
 # dat.ph.drop2 <- dat.ph.drop %>% select(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal,GEO,MaxL)  %>% filter(!is.na(new_pname))  %>% filter(!(new_pname=="Spiracanthus bovichthys" & P_Taxon=="M")) %>% filter(!(new_pname=="Neoechinorhynchus cylindratus" & P_Taxon=="M")) %>% arrange(new_pname,Endoparasite,Complex,Trophic,Horizontal) %>% distinct(new_pname,GEO,MaxL)
