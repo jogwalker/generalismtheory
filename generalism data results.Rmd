@@ -14,125 +14,163 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 ```
+## Methods
+The generalism metrics for each parasite species were compared to measures of the characteristics described in Table 1. Metrics for endoparasites with direct life cycles were compared separately to summary measures (mean, maximum, standard deviation (SD), and coefficient of variation (CV)) of the maximum length reported for each of their hosts using linear models.  Note that SD and CV of the host length are only calculated for parasites with more than one host. 
 
-## Prediction 1: It is easier for generalist endoparasites to invade if the available hosts are large-bodied
-I looked for a relationship between the mean, coefficient of variation ($\sigma/\mu$) and maximum MaxL (fish host length) value for each parasite’s hosts and each of the four parasite generalism indices (*degree*, the number of hosts; *gen*, a binary of whether the parasite has more than one host; *S~TD~*, the average taxonomic distance between the hosts; and *VarS~TD~*, the variance of *S~TD~*).
+Due to the distribution of degree for ectoparasites in this case we used a negative binomial generalized linear model (GLM) with a log link function; standard linear models were used for SPD and VarSPD.  The mean maximum length was additionally divided into a categorical variable according to quartiles.  
+
+The effect of geographic range on parasites with a direct life cycle was calculated for ectoparasites only, due to the small number of endoparasites with a direct life cycle. As above, a linear model/ANOVA was used to assess the effect of geographical category on SPD and VarSPD, while a negative binomial GLM was used for degree. Regions were assessed as defined in Table 1 and also divided into two groups, where Antarctica, Nearctic, and Palearctic were assumed to be colder than Africa, Australia, Indopacific, and Neotropical regions. Some host-parasite associations were reported in more than one region, so for this analysis the generalism metrics were calculated separately for each region.
+
+The binary parasite characteristics of complex life cycle and trophic transmission were compared to the parasite indices as above – using a linear model/t-test for SPD and VarSPD and a negative binomial GLM for degree. In this case, endo and ectoparasites are considered in the same analysis.
+
+
+
+## Endoparasites & Host Body Size
 
 ```{r maxl,echo=FALSE,warning=FALSE}
-load("~/dat/generalismtheory/hp.full.simple.RData")
+load("~/dat/generalismtheory/hp.def.RData")
 
-hp.endo <- hp.full.simple %>% filter(Endoparasite =="Endo")
+hp.endo <- hp.def %>% filter(Endoparasite =="Endo")
 hp.endo$gen <- FALSE
 hp.endo$gen[hp.endo$degree > 1] <- TRUE
-
-
-
-# endolong <- hp.endo %>% gather("index","value",10:13)
-# ggplot(data=endolong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value")
-# mnMaxLdeg <- with(hp.endo,cor.test(meanMaxL,degree,method="spearman"))
-# mnMaxLgen <- with(hp.endo,cor.test(meanMaxL,as.numeric(gen),method="spearman"))
-# mnMaxLstd <- with(hp.endo,cor.test(meanMaxL,S_TD,method="spearman"))
-# mnMaxLvstd <- with(hp.endo,cor.test(meanMaxL,VarS_TD,method="spearman"))
-# hp.endo %>% group_by(gen) %>% summarize(mean=mean(meanMaxL,na.rm=T),median=median(meanMaxL,na.rm=T))
-
 hp.endoDirect <- hp.endo %>% filter(Complex=="No")
+names(hp.endoDirect)[2:3] <- c("SPD","VarSPD")
+hp.endoDirect$cvmaxL <- hp.endoDirect$sdMaxL/hp.endoDirect$meanMaxL
+endoDlong <- hp.endoDirect %>% gather("index","value",c(2:4,13))
+endoDlong2 <- endoDlong %>% gather("length_measure","length",c(7:10))
 
-endoDlong <- hp.endoDirect %>% gather("index","value",10:13)
-# ggplot(data=endoDlong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
-# ggplot(data=endoDlong,aes(x=maxMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
-
-endoDlong2 <- endoDlong %>% gather("length_measure","length",7:9)
-ggplot(data=endoDlong2,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(length_measure~index,scales="free") + ylab("index value") + geom_smooth(method="lm")
-
-endoDlong$cvmaxL <- endoDlong$sdMaxL/endoDlong$meanMaxL
-ggplot(data=endoDlong,aes(x=cvmaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
-
-# summary(lm(hp.endoDirect$VarS_TD ~ hp.endoDirect$cvmaxL))
-# summary(lm(hp.endoDirect$S_TD ~ hp.endoDirect$sdMaxL))
-# cor.test(hp.endoDirect$S_TD, hp.endoDirect$sdMaxL,method="spearman")
-# cor.test(hp.endoDirect$VarS_TD, hp.endoDirect$maxMaxL,method="spearman")
+endoDlong2 %>% filter(index !="gen") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
 ```
 
-## Ectoparasites and host body size - more complex relationship expected
+```{r endoanalysis, echo=TRUE}
+summary(lm(data=hp.endoDirect,cvmaxL~degree))
+summary(lm(data=hp.endoDirect,cvmaxL~SPD))
+summary(lm(data=hp.endoDirect,cvmaxL~VarSPD))
+
+summary(lm(data=hp.endoDirect,maxMaxL~degree))
+summary(lm(data=hp.endoDirect,maxMaxL~SPD))
+summary(lm(data=hp.endoDirect,maxMaxL~VarSPD))
+
+summary(lm(data=hp.endoDirect,meanMaxL~degree))
+summary(lm(data=hp.endoDirect,meanMaxL~SPD))
+summary(lm(data=hp.endoDirect,meanMaxL~VarSPD))
+
+summary(lm(data=hp.endoDirect,sdMaxL~degree))
+summary(lm(data=hp.endoDirect,sdMaxL~SPD))
+summary(lm(data=hp.endoDirect,sdMaxL~VarSPD))
+```
+
+## Ectoparasites & Host Body Size
 
 ```{r ecto, echo=FALSE}
-hp.ecto <- hp.full.simple %>% filter(Endoparasite =="Ecto")
-hp.ecto$gen <- FALSE
-hp.ecto$gen[hp.ecto$degree > 1] <- TRUE
+hp.ecto <- hp.def %>% filter(Endoparasite =="Ecto")
 hp.ectoDirect <- hp.ecto %>% filter(Complex=="No")
+names(hp.ectoDirect)[2:3] <- c("SPD","VarSPD")
 
 # divide into quartiles
+#summary(hp.ectoDirect$meanMaxL)
 hp.ectoDirect$mean.lcat <- 1
 hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 27] <- 2
 hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 54] <- 3
 hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 124.5] <- 4
 
-ectoDlong <- hp.ectoDirect %>% gather("index","value",10:13)
-ectoDlong2 <- ectoDlong %>% gather("length_measure","length",7:10)
+hp.ectoDirect$cvmaxL <- hp.ectoDirect$sdMaxL/hp.ectoDirect$meanMaxL
 
-ectoDlong2 %>% filter(length_measure=="meanMaxL") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,scales="free") #+ ylab("index value") #+ geom_smooth(method="lm") #+ scale_y_log10() + scale_x_log10()
+ectoDlong <- hp.ectoDirect %>% gather("index","value",2:4)
+ectoDlong2 <- ectoDlong %>% gather("length_measure","length",7:11)
+
+
+ectoDlong2 %>% filter(length_measure != "mean.lcat") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
 ectoDlong2 %>% filter(length_measure=="mean.lcat") %>% ggplot(data=.,aes(x=as.factor(length),y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + ylab("index value")
 
-ectoDlong$cvmaxL <- ectoDlong$sdMaxL/ectoDlong$meanMaxL
-ggplot(data=ectoDlong,aes(x=cvmaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
-
-ectoDlong2 %>% filter(length_measure=="mean.lcat") %>% group_by(index, length) %>% summarize(mean=mean(value,na.rm=T),median=median(value,na.rm=T))
-
-with(hp.ectoDirect,kruskal.test(degree ~ as.factor(mean.lcat)))
-lm1 <- lm(data=hp.ectoDirect,degree ~ as.factor(mean.lcat))
-summary(lm1)
-plot(lm1)
-lm2 <- glm(data=hp.ectoDirect,degree ~ as.factor(mean.lcat),family="poisson") # or quasipoisson
-summary(lm2)
-plot(lm2)
-lm3 <- lm(data=hp.ectoDirect,S_TD ~ as.factor(mean.lcat))
-summary(lm3)
-plot(lm3)
-
-ggplot(data=hp.ectoDirect,aes(degree)) + geom_histogram(binwidth=2) + theme_bw() + facet_wrap(~mean.lcat)
-
-library(MASS)
-m1 <- glm.nb(data=hp.ectoDirect,degree ~ as.factor(mean.lcat))
-m0 <- glm.nb(data=hp.ectoDirect,degree ~ 1)
-
-# library(VGAM)
-# m2 <- vglm(data=hp.ectoDirect,degree ~ mean.lcat,family=posnegbinomial()) # errorrr
-
 ```
+
 Negative binomial GLM seems like the best way to compare Ecto degree to quartiles of length categories. The estimates are log values, so exp() to get the estimate. Except, it's strictly positive so should use a zero truncated model?
 
+```{r ectoanalysis, echo=TRUE}
+summary(lm(data=hp.ectoDirect,cvmaxL~SPD))
+summary(lm(data=hp.ectoDirect,cvmaxL~VarSPD))
 
-Index isn't calculated based on geography, is it?
-```{r geo, echo=FALSE}
-load("~/dat/generalismtheory/hp.full.geo.RData")
-hp.full.geo$gen <- FALSE
-hp.full.geo$gen[hp.full.geo$degree > 1] <- TRUE
-hp.geoDirect <- hp.full.geo %>% filter(Complex=="No")
-geoDlong <- hp.geoDirect %>% gather("index","value",11:14)
+summary(lm(data=hp.ectoDirect,maxMaxL~SPD))
+summary(lm(data=hp.ectoDirect,maxMaxL~VarSPD))
 
-geoDlong %>% ggplot(data=.,aes(x=GEO,y=value)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free") #+ ylab("index value") #+ geom_smooth(method="lm") #+ scale_y_log10() + scale_x_log10()
+summary(lm(data=hp.ectoDirect,meanMaxL~SPD))
+summary(lm(data=hp.ectoDirect,meanMaxL~VarSPD))
+
+summary(lm(data=hp.ectoDirect,sdMaxL~SPD))
+summary(lm(data=hp.ectoDirect,sdMaxL~VarSPD))
+
+# these LMs don't have straight Q-Q plots. Need to think about the implications.
+
+library(MASS)
+summary(glm.nb(data=hp.ectoDirect,degree ~ cvmaxL))
+summary(glm.nb(data=hp.ectoDirect,degree ~ maxMaxL))
+summary(glm.nb(data=hp.ectoDirect,degree ~ meanMaxL))
+summary(glm.nb(data=hp.ectoDirect,degree ~ as.factor(mean.lcat)))
+
 ```
 
-```{r site,echo=FALSE}
-hp.site <- hp.full.simple %>% gather("index","value",10:12) %>% filter(Complex=="No")
-  
-hp.site %>% ggplot(data=.,aes(x=Endoparasite,y=value)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free") 
+
+
+```{r geo, echo=FALSE}
+# Use alternative index calculated with GEO
+load("~/dat/generalismtheory/hp.def.geo.RData")
+hp.geoDirect <- hp.def.geo %>% filter(Complex=="No")
+names(hp.geoDirect)[3:4] <- c("SPD","VarSPD")
+GeoDirectEcto <- hp.geoDirect %>% filter(Endoparasite=="Ecto")
+GeoDirectEcto$GeoGroup <- NA
+GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("AFR","AUS","IND","NEO")] <- "warm"
+GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("ANT","NEA","PAL")] <- "cool"
+
+geoDlong <- GeoDirectEcto %>% gather("index","value",3:5)
+geoDlong %>% ggplot(data=.,aes(x=GEO,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+geoDlong %>% ggplot(data=.,aes(x=GeoGroup,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free")
+
+```
+```{r geoanalysis, echo=TRUE}
+summary(lm(data=GeoDirectEcto,SPD ~ GEO))
+summary(lm(data=GeoDirectEcto,VarSPD ~ GEO))
+
+summary(glm.nb(data=GeoDirectEcto,degree ~ GEO))
+
+summary(glm.nb(data=GeoDirectEcto,degree ~ GeoGroup))
+
+summary(lm(data=GeoDirectEcto,SPD ~ GeoGroup))
+summary(lm(data=GeoDirectEcto,VarSPD ~ GeoGroup))
 
 ```
 
 ```{r complex,echo=FALSE}
-hp.comp <- hp.full.simple %>% gather("index","value",10:12) %>% filter(Complex == "Yes" | Complex=="No")
-  
-hp.comp %>% ggplot(data=.,aes(x=Complex,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+hp.comp <- hp.def %>% filter(Complex == "Yes" | Complex=="No")
+names(hp.comp)[2:3] <- c("SPD","VarSPD")
+complong <- hp.comp %>% gather("index","value",2:4) 
+
+complong %>% ggplot(data=.,aes(x=Complex,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+```
+
+```{r complexanalysis, echo=TRUE}
+summary(glm.nb(data=hp.comp,degree ~ Complex))
+summary(lm(data=hp.comp,SPD ~ Complex))
+summary(lm(data=hp.comp,VarSPD ~ Complex))
 
 ```
+
 
 ```{r trophic,echo=FALSE}
-hp.trop <- hp.full.simple %>% gather("index","value",10:12) 
-  
-hp.trop %>% ggplot(data=.,aes(x=Trophic,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+hp.trop <- hp.def %>% filter(Trophic == "Yes" | Trophic=="No")
+names(hp.trop)[2:3] <- c("SPD","VarSPD")
+troplong <- hp.trop %>% gather("index","value",2:4) 
 
+troplong %>% ggplot(data=.,aes(x=Trophic,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
 ```
 
-Maybe all the missing data is biased because it's for parasite species that are less well studied...
+```{r trophicanalysis, echo=TRUE}
+summary(glm.nb(data=hp.trop,degree ~ Trophic))
+summary(lm(data=hp.trop,SPD ~ Trophic))
+summary(lm(data=hp.trop,VarSPD ~ Trophic))
+
+with(hp.def,table(Trophic,Complex))
+# Trophic and Complex are almost perfectly correlated in this subset of the dataset.
+
+```
