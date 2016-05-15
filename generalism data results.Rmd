@@ -24,25 +24,22 @@ load("~/dat/generalismtheory/hp.full.simple.RData")
 hp.endo <- hp.full.simple %>% filter(Endoparasite =="Endo")
 hp.endo$gen <- FALSE
 hp.endo$gen[hp.endo$degree > 1] <- TRUE
-endolong <- hp.endo %>% gather("index","value",10:13)
 
-ggplot(data=endolong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value")
 
-mnMaxLdeg <- with(hp.endo,cor.test(meanMaxL,degree,method="spearman"))
-mnMaxLgen <- with(hp.endo,cor.test(meanMaxL,as.numeric(gen),method="spearman"))
-mnMaxLstd <- with(hp.endo,cor.test(meanMaxL,S_TD,method="spearman"))
-mnMaxLvstd <- with(hp.endo,cor.test(meanMaxL,VarS_TD,method="spearman"))
+
+# endolong <- hp.endo %>% gather("index","value",10:13)
+# ggplot(data=endolong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value")
+# mnMaxLdeg <- with(hp.endo,cor.test(meanMaxL,degree,method="spearman"))
+# mnMaxLgen <- with(hp.endo,cor.test(meanMaxL,as.numeric(gen),method="spearman"))
+# mnMaxLstd <- with(hp.endo,cor.test(meanMaxL,S_TD,method="spearman"))
+# mnMaxLvstd <- with(hp.endo,cor.test(meanMaxL,VarS_TD,method="spearman"))
 # hp.endo %>% group_by(gen) %>% summarize(mean=mean(meanMaxL,na.rm=T),median=median(meanMaxL,na.rm=T))
 
 hp.endoDirect <- hp.endo %>% filter(Complex=="No")
 
-qplot(data=hp.endoDirect,x=meanMaxL,y=degree) + geom_smooth(method = "lm")
-qplot(data=hp.endoDirect,x=maxMaxL,y=degree) + geom_smooth(method = "lm")
-
-
 endoDlong <- hp.endoDirect %>% gather("index","value",10:13)
-ggplot(data=endoDlong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
-ggplot(data=endoDlong,aes(x=maxMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+# ggplot(data=endoDlong,aes(x=meanMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+# ggplot(data=endoDlong,aes(x=maxMaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
 endoDlong2 <- endoDlong %>% gather("length_measure","length",7:9)
 ggplot(data=endoDlong2,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(length_measure~index,scales="free") + ylab("index value") + geom_smooth(method="lm")
@@ -50,21 +47,92 @@ ggplot(data=endoDlong2,aes(x=length,y=value)) + geom_jitter() + theme_bw() + fac
 endoDlong$cvmaxL <- endoDlong$sdMaxL/endoDlong$meanMaxL
 ggplot(data=endoDlong,aes(x=cvmaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
-summary(lm(hp.endoDirect$VarS_TD ~ hp.endoDirect$cvmaxL))
-summary(lm(hp.endoDirect$S_TD ~ hp.endoDirect$sdMaxL))
-cor.test(hp.endoDirect$S_TD, hp.endoDirect$sdMaxL,method="spearman")
-cor.test(hp.endoDirect$VarS_TD, hp.endoDirect$maxMaxL,method="spearman")
+# summary(lm(hp.endoDirect$VarS_TD ~ hp.endoDirect$cvmaxL))
+# summary(lm(hp.endoDirect$S_TD ~ hp.endoDirect$sdMaxL))
+# cor.test(hp.endoDirect$S_TD, hp.endoDirect$sdMaxL,method="spearman")
+# cor.test(hp.endoDirect$VarS_TD, hp.endoDirect$maxMaxL,method="spearman")
 ```
 
-## Large-bodied hosts are more likely to be infected by generalist than specialist endoparasites
-and maximum and CV - sd/mean? `r mnMaxLdeg$estimate`
+## Ectoparasites and host body size - more complex relationship expected
 
-You can also embed plots, for example:
+```{r ecto, echo=FALSE}
+hp.ecto <- hp.full.simple %>% filter(Endoparasite =="Ecto")
+hp.ecto$gen <- FALSE
+hp.ecto$gen[hp.ecto$degree > 1] <- TRUE
+hp.ectoDirect <- hp.ecto %>% filter(Complex=="No")
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+# divide into quartiles
+hp.ectoDirect$mean.lcat <- 1
+hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 27] <- 2
+hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 54] <- 3
+hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 124.5] <- 4
 
-load("~/dat/generalismtheory/hp.full.geo.stage.RData")
+ectoDlong <- hp.ectoDirect %>% gather("index","value",10:13)
+ectoDlong2 <- ectoDlong %>% gather("length_measure","length",7:10)
+
+ectoDlong2 %>% filter(length_measure=="meanMaxL") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,scales="free") #+ ylab("index value") #+ geom_smooth(method="lm") #+ scale_y_log10() + scale_x_log10()
+
+ectoDlong2 %>% filter(length_measure=="mean.lcat") %>% ggplot(data=.,aes(x=as.factor(length),y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + ylab("index value")
+
+ectoDlong$cvmaxL <- ectoDlong$sdMaxL/ectoDlong$meanMaxL
+ggplot(data=ectoDlong,aes(x=cvmaxL,y=value)) + geom_jitter() + theme_bw() + facet_wrap(~index,nrow=2,scales="free") + ylab("index value") + geom_smooth(method="lm")
+
+ectoDlong2 %>% filter(length_measure=="mean.lcat") %>% group_by(index, length) %>% summarize(mean=mean(value,na.rm=T),median=median(value,na.rm=T))
+
+with(hp.ectoDirect,kruskal.test(degree ~ as.factor(mean.lcat)))
+lm1 <- lm(data=hp.ectoDirect,degree ~ as.factor(mean.lcat))
+summary(lm1)
+plot(lm1)
+lm2 <- glm(data=hp.ectoDirect,degree ~ as.factor(mean.lcat),family="poisson") # or quasipoisson
+summary(lm2)
+plot(lm2)
+lm3 <- lm(data=hp.ectoDirect,S_TD ~ as.factor(mean.lcat))
+summary(lm3)
+plot(lm3)
+
+ggplot(data=hp.ectoDirect,aes(degree)) + geom_histogram(binwidth=2) + theme_bw() + facet_wrap(~mean.lcat)
+
+library(MASS)
+m1 <- glm.nb(data=hp.ectoDirect,degree ~ as.factor(mean.lcat))
+m0 <- glm.nb(data=hp.ectoDirect,degree ~ 1)
+
+# library(VGAM)
+# m2 <- vglm(data=hp.ectoDirect,degree ~ mean.lcat,family=posnegbinomial()) # errorrr
+
+```
+Negative binomial GLM seems like the best way to compare Ecto degree to quartiles of length categories. The estimates are log values, so exp() to get the estimate. Except, it's strictly positive so should use a zero truncated model?
+
+
+Index isn't calculated based on geography, is it?
+```{r geo, echo=FALSE}
+load("~/dat/generalismtheory/hp.full.geo.RData")
+hp.full.geo$gen <- FALSE
+hp.full.geo$gen[hp.full.geo$degree > 1] <- TRUE
+hp.geoDirect <- hp.full.geo %>% filter(Complex=="No")
+geoDlong <- hp.geoDirect %>% gather("index","value",11:14)
+
+geoDlong %>% ggplot(data=.,aes(x=GEO,y=value)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free") #+ ylab("index value") #+ geom_smooth(method="lm") #+ scale_y_log10() + scale_x_log10()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r site,echo=FALSE}
+hp.site <- hp.full.simple %>% gather("index","value",10:12) %>% filter(Complex=="No")
+  
+hp.site %>% ggplot(data=.,aes(x=Endoparasite,y=value)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free") 
+
+```
+
+```{r complex,echo=FALSE}
+hp.comp <- hp.full.simple %>% gather("index","value",10:12) %>% filter(Complex == "Yes" | Complex=="No")
+  
+hp.comp %>% ggplot(data=.,aes(x=Complex,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+
+```
+
+```{r trophic,echo=FALSE}
+hp.trop <- hp.full.simple %>% gather("index","value",10:12) 
+  
+hp.trop %>% ggplot(data=.,aes(x=Trophic,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+
+```
+
+Maybe all the missing data is biased because it's for parasite species that are less well studied...
