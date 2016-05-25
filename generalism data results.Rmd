@@ -14,6 +14,21 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 ```
+## Summary of Metrics Calculated
+See Poulin et al 2011 for a description of the facets of host specificity/generalism 
+
+We don't expect these measures to be independent.
+
+| Metric | Description | Facet | Source |
+|--------|-------------|-----------|-------|
+|degree  | number of hosts | basic | |
+| SPD | mean pairwise phylogenetic distance between all hosts | phylogenetic | Poulin & Mouillot |
+| Faith's PD | minimum total length of all the phylogenetic branches required to span all hosts on the phylogenetic tree | phylogenetic | Faith 1992 |
+| PS | sum of pairwise phylogenetic distance between all hosts |phylogenetic | Poulin 2011 |
+|   | *we could look at this but it doesn't translate to the theory?* | geographic | |
+|   |*we can't look at this because don't have enough data on intermediate hosts* | ontogenetic | |
+
+
 ## Methods
 The generalism metrics for each parasite species were compared to measures of the characteristics described in Table 1. Metrics for endoparasites with direct life cycles were compared separately to summary measures (mean, maximum, standard deviation (SD), and coefficient of variation (CV)) of the maximum length reported for each of their hosts using linear models.  Note that SD and CV of the host length are only calculated for parasites with more than one host. 
 

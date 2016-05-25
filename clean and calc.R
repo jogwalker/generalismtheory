@@ -157,6 +157,11 @@ with(dat.ph.2,table(Complex,Host_stage,useNA="ifany"))
 
 dat.ph.def <- dat.ph.2 %>% filter(Definitive==1)
 
+bipdef <- dplyr::select(dat.ph.def,new_pname,new_hname) %>% distinct() %>% arrange(new_pname,new_hname) %>% filter(!(is.na(new_pname) | is.na(new_hname)))
+
+write.table(bipdef,file="~/dat/generalismtheory/def-associations.txt")
+save(bipdef,file="~/dat/generalismtheory/bipdef.RDdata")
+
 index.complex <- dat.ph.def %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
 
 index.geo <- dat.ph.def %>% group_by(new_pname,GEO) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()

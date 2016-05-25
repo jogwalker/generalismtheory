@@ -1,5 +1,5 @@
 
-setwd()
+setwd("~/dat/generalismtheory/")
 load('160517_generalism_keyObj.RData')
 library(ape)
 library(phangorn)
@@ -28,6 +28,14 @@ library(picante)
 #
 #################################################################################################
 
+# update to use only definitive hosts (bipdef list)
+assoc <- bipdef
+paralist <- unique(bipdef$new_pname)
+assoc$h_name <- gsub(" ","_",assoc$new_hname)
+assoc$h_name[assoc$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
+assoc <- filter(assoc,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
+save(assoc,file="~/dat/generalismtheory/assoc_def.RData")
+
 # make the tree of all hosts (ultrametric using upgma)
 allhost_tree<-upgma(pgd_final)
 plot(allhost_tree, show.tip.label = FALSE, direction="downwards")
@@ -44,7 +52,7 @@ for(paras in 1:length(paralist)){
 # compute phylogenetic diversity
 ro_allhost_tree<-reorder(allhost_tree, "cladewise")
 pd_allhost<-pd(cdmat, ro_allhost_tree)
-
+save(pd_allhost,file="~/dat/generalismtheory/pd_allhost.RData")
 #################################################################################################
 #
 # make my dataframe with various indices
@@ -60,7 +68,7 @@ for(paras in 1:length(paralist)){
 #  hmat<-pgd_final[hlist, hlist]
 #	for(i in 1:length(lowerTriangle(hmat))){if(is.na(lowerTriangle(hmat)[i])){lowerTriangle(hmat)[i]<-upperTriangle(hmat, byrow=TRUE)[i]}}
 #	sumBLen_upgma<-sum(upgma(hmat)$edge.length)
-  pname<-paralist[paras]
+  pname<-as.character(paralist[paras])
 	hostN<-length(hlist)
 	edges<-(hostN*(hostN-1))/2
 	sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE)
