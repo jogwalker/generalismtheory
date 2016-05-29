@@ -162,6 +162,10 @@ bipdef <- dplyr::select(dat.ph.def,new_pname,new_hname) %>% distinct() %>% arran
 write.table(bipdef,file="~/dat/generalismtheory/def-associations.txt")
 save(bipdef,file="~/dat/generalismtheory/bipdef.RDdata")
 
+bipdefgeo <- dplyr::select(dat.ph.def,new_pname,new_hname,GEO) %>% distinct() %>% arrange(new_pname,new_hname) %>% filter(!(is.na(new_pname) | is.na(new_hname)))
+save(bipdefgeo,file="~/dat/generalismtheory/bipdefgeo.RDdata")
+
+#################################
 index.complex <- dat.ph.def %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
 
 index.geo <- dat.ph.def %>% group_by(new_pname,GEO) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
