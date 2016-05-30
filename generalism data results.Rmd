@@ -1,7 +1,7 @@
 ---
 title: "Generalism data results"
 author: "Josephine Walker"
-date: "14 May 2016"
+date: "30 May 2016"
 output: word_document
 ---
 
@@ -13,11 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(MASS)
 ```
 ## Summary of Metrics Calculated
-See Poulin et al 2011 for a description of the facets of host specificity/generalism 
+Generalism, similar to diversity, can be measured in a number of ways. Poulin et al 2011 describe four facets of generalism: basic, phylogenetic, geographic, and ontogenetic. Basic metrics are calculated from numbers of hosts, phylogenetic metrics use genetic or taxonomic distances between hosts, geographic metrics look at specificity in space, and ontogenetic metrics look at specificity between life stages of the parasite. We don't expect these measures to be independent.
 
-We don't expect these measures to be independent.
+The nature of the data in the fish host-parasite database, which only includes associations and not abundances or prevalences, limits the metrics which we can calculate. In addition, due to only have information on fish hosts, we can't calculate an accurate measure of intermediate host specificity, so do not calculate ontogenetic measures. We have information on geography at a large regional scale, but only a small proportion of parasites have hosts in multiple locations - instead of calculating a geographic metric, we calculate basic and phylogenetic metrics both with and without parasite-host associations divided by geographic region.
+
+The metrics we calculate are:
 
 | Metric | Description | Facet | Source |
 |--------|-------------|-----------|-------|
@@ -25,87 +28,152 @@ We don't expect these measures to be independent.
 | SPD | mean pairwise phylogenetic distance between all hosts | phylogenetic | Poulin & Mouillot |
 | Faith's PD | minimum total length of all the phylogenetic branches required to span all hosts on the phylogenetic tree | phylogenetic | Faith 1992 |
 | PS | sum of pairwise phylogenetic distance between all hosts |phylogenetic | Poulin 2011 |
-|   | *we could look at this but it doesn't translate to the theory?* | geographic | |
-|   |*we can't look at this because don't have enough data on intermediate hosts* | ontogenetic | |
 
 
-## Methods
-The generalism metrics for each parasite species were compared to measures of the characteristics described in Table 1. Metrics for endoparasites with direct life cycles were compared separately to summary measures (mean, maximum, standard deviation (SD), and coefficient of variation (CV)) of the maximum length reported for each of their hosts using linear models.  Note that SD and CV of the host length are only calculated for parasites with more than one host. 
+## Analysis Methods
+The generalism metrics for each parasite species were compared to measures of host and parasite characteristics (Table 1 in main document) for which theoretical predictions were made. 
 
-Due to the distribution of degree for ectoparasites in this case we used a negative binomial generalized linear model (GLM) with a log link function; standard linear models were used for SPD and VarSPD.  The mean maximum length was additionally divided into a categorical variable according to quartiles.  
+Metrics for parasites with direct or trophic life cycles were compared to summary measures (mean, maximum, standard deviation (SD), and coefficient of variation (CV)) of the maximum length reported for each of their hosts.  Note that SD and CV of the host length are only calculated for parasites with more than one host. Endoparasites and ectoparasites were assessed separately, with an additional categorical length measure used for ectoparasites, whereby the mean maximum length was divided into a categorical variable according to quartiles.
 
-The effect of geographic range on parasites with a direct life cycle was calculated for ectoparasites only, due to the small number of endoparasites with a direct life cycle. As above, a linear model/ANOVA was used to assess the effect of geographical category on SPD and VarSPD, while a negative binomial GLM was used for degree. Regions were assessed as defined in Table 1 and also divided into two groups, where Antarctica, Nearctic, and Palearctic were assumed to be colder than Africa, Australia, Indopacific, and Neotropical regions. Some host-parasite associations were reported in more than one region, so for this analysis the generalism metrics were calculated separately for each region.
+<!-- SPD is only calculated for parasites with more than one host. -->
+<!-- Negative binomial generalized linear models (GLM) with log link functions were used for response variable degree, linear models were used for SPD.   -->
+<!-- PD & PS -->
+<!-- %%%%%%%%%%%%%%% -->
 
-The binary parasite characteristics of complex life cycle and trophic transmission were compared to the parasite indices as above – using a linear model/t-test for SPD and VarSPD and a negative binomial GLM for degree. In this case, endo and ectoparasites are considered in the same analysis.
+<!-- The effect of geographic range on parasites with a direct life cycle was calculated for ectoparasites only, due to the small number of endoparasites with a direct life cycle. As above, a linear model/ANOVA was used to assess the effect of geographical category on SPD and VarSPD, while a negative binomial GLM was used for degree. Regions were assessed as defined in Table 1 and also divided into two groups, where Antarctica, Nearctic, and Palearctic were assumed to be colder than Africa, Australia, Indopacific, and Neotropical regions. Some host-parasite associations were reported in more than one region, so for this analysis the generalism metrics were calculated separately for each region. -->
 
-
+<!-- The binary parasite characteristics of complex life cycle and trophic transmission were compared to the parasite indices as above – using a linear model/t-test for SPD and VarSPD and a negative binomial GLM for degree. In this case, endo and ectoparasites are considered in the same analysis. -->
 
 ## Endoparasites & Host Body Size
+Subset to parasites known to either have a direct life cycle or trophic transmission (exclude complex non-trophic and NA)
+
+Clay's model predicts that there should be a positive correlation among parasites’ generalism index and both the maximum host body size and the mean or median body size across all host species. 
+
+For some measures we do see a positive correlation, and in particular there is a strong positive correlation between the coefficient of variation of host length and the mean phylogenetic distance between hosts (SPD).
+
+Many of the relationships are very non-linear. 
+
 
 ```{r maxl,echo=FALSE,warning=FALSE}
-load("~/dat/generalismtheory/hp.def.RData")
+load("~/dat/generalismtheory/indices29maytraits.RData")
+names(generalism.traits)[4:8] <- c("PS","SPD","sSPD","PD","degree")
+generalism.traits$cvmaxL <- generalism.traits$sdMaxL/generalism.traits$meanMaxL
+hp.endo <- generalism.traits %>% filter(Endoparasite =="Endo")
 
-hp.endo <- hp.def %>% filter(Endoparasite =="Endo")
-hp.endo$gen <- FALSE
-hp.endo$gen[hp.endo$degree > 1] <- TRUE
-hp.endoDirect <- hp.endo %>% filter(Complex=="No")
-names(hp.endoDirect)[2:3] <- c("SPD","VarSPD")
-hp.endoDirect$cvmaxL <- hp.endoDirect$sdMaxL/hp.endoDirect$meanMaxL
-endoDlong <- hp.endoDirect %>% gather("index","value",c(2:4,13))
-endoDlong2 <- endoDlong %>% gather("length_measure","length",c(7:10))
+hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD)
 
-endoDlong2 %>% filter(index !="gen") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
+# divide into quartiles
+summean <- summary(hp.endo2$meanMaxL)
+hp.endo2$mean.lcat <- 1
+hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["1st Qu."]] <- 2
+hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["Median"]] <- 3
+hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["3rd Qu."]] <- 4
+
+sumsd <- summary(hp.endo2$sdMaxL)
+hp.endo2$sd.lcat <- 1
+hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["1st Qu."]] <- 2
+hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["Median"]] <- 3
+hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["3rd Qu."]] <- 4
+
+summax <- summary(hp.endo2$maxMaxL)
+hp.endo2$max.lcat <- 1
+hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["1st Qu."]] <- 2
+hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["Median"]] <- 3
+hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["3rd Qu."]] <- 4
+
+sumcv <- summary(hp.endo2$cvmaxL)
+hp.endo2$cv.lcat <- 1
+hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["1st Qu."]] <- 2
+hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["Median"]] <- 3
+hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["3rd Qu."]] <- 4
+
+endoDlong <- hp.endo2 %>% gather("index","value",c(4:7))
+endoDlong1 <- endoDlong %>% gather("length_cat_measure","length_cat",c(13:16))
+endoDlong2 <- endoDlong1 %>% gather("length_measure","length",c(9:12))
+
+endoDlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
+
+# endoDlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
+
+endoDlong2 %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
 ```
 
-```{r endoanalysis, echo=TRUE}
-summary(lm(data=hp.endoDirect,cvmaxL~degree))
-summary(lm(data=hp.endoDirect,cvmaxL~SPD))
-summary(lm(data=hp.endoDirect,cvmaxL~VarSPD))
+```{r endoanalysis, echo=FALSE,eval=FALSE}
 
-summary(lm(data=hp.endoDirect,maxMaxL~degree))
-summary(lm(data=hp.endoDirect,maxMaxL~SPD))
-summary(lm(data=hp.endoDirect,maxMaxL~VarSPD))
+summary(glm.nb(data=hp.endo2,degree ~ cvmaxL)) # positive
+summary(glm.nb(data=hp.endo2,degree ~ maxMaxL)) # positive
+summary(glm.nb(data=hp.endo2,degree ~ meanMaxL)) # negative
+summary(glm.nb(data=hp.endo2,degree ~ sdMaxL)) # positive
 
-summary(lm(data=hp.endoDirect,meanMaxL~degree))
-summary(lm(data=hp.endoDirect,meanMaxL~SPD))
-summary(lm(data=hp.endoDirect,meanMaxL~VarSPD))
+# log transform doesn't help
+# summary(lm(data=hp.endo2,log(PD) ~ cvmaxL)) # positive
+# summary(lm(data=hp.endo2,log(PD) ~ maxMaxL)) # positive
+# summary(lm(data=hp.endo2,log(PD) ~ meanMaxL)) # negative
+# summary(lm(data=hp.endo2,log(PD) ~ sdMaxL)) # positive
+# 
+# summary(glm.nb(data=hp.endo2,PS ~ cvmaxL)) # positive
+# summary(glm.nb(data=hp.endo2,PS ~ maxMaxL)) # positive
+# summary(glm.nb(data=hp.endo2,PS ~ meanMaxL)) # negative
+# summary(glm.nb(data=hp.endo2,PS ~ sdMaxL)) # positive
 
-summary(lm(data=hp.endoDirect,sdMaxL~degree))
-summary(lm(data=hp.endoDirect,sdMaxL~SPD))
-summary(lm(data=hp.endoDirect,sdMaxL~VarSPD))
+summary(lm(data=hp.endo2,SPD ~ cvmaxL)) # positive
+summary(lm(data=hp.endo2,SPD ~ maxMaxL)) # no relationship
+summary(lm(data=hp.endo2,SPD ~ meanMaxL)) # negative
+summary(lm(data=hp.endo2,SPD ~ sdMaxL)) # positive
 ```
 
 ## Ectoparasites & Host Body Size
+Clay's model predicts that for ectoparasites, there should be few generalist parasites of either very small bodied or very large bodied hosts.
 
-```{r ecto, echo=FALSE}
-hp.ecto <- hp.def %>% filter(Endoparasite =="Ecto")
-hp.ectoDirect <- hp.ecto %>% filter(Complex=="No")
-names(hp.ectoDirect)[2:3] <- c("SPD","VarSPD")
+This seems to be the case for degree, PD, and PS, but not so clear for SPD. However, I categorized by quartiles and due to the skewed distribution and long tail, in some cases relatively low values for length are in the 4th quartile, for example for sd and max length. Mean length shows what we expect with quartile categorization. Is there a better way to categorize?  
+
+```{r ecto, echo=FALSE,warning=FALSE}
+hp.ecto <- generalism.traits %>% filter(Endoparasite =="Ecto")
+hp.ecto2 <- hp.ecto %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD)
 
 # divide into quartiles
-#summary(hp.ectoDirect$meanMaxL)
-hp.ectoDirect$mean.lcat <- 1
-hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 27] <- 2
-hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 54] <- 3
-hp.ectoDirect$mean.lcat[hp.ectoDirect$meanMaxL > 124.5] <- 4
+summean <- summary(hp.ecto2$meanMaxL)
+hp.ecto2$mean.lcat <- 1
+hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["1st Qu."]] <- 2
+hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["Median"]] <- 3
+hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["3rd Qu."]] <- 4
 
-hp.ectoDirect$cvmaxL <- hp.ectoDirect$sdMaxL/hp.ectoDirect$meanMaxL
+sumsd <- summary(hp.ecto2$sdMaxL)
+hp.ecto2$sd.lcat <- 1
+hp.ecto2$sd.lcat[hp.ecto2$sdMaxL > sumsd["1st Qu."]] <- 2
+hp.ecto2$sd.lcat[hp.ecto2$sdMaxL > sumsd["Median"]] <- 3
+hp.ecto2$sd.lcat[hp.ecto2$sdMaxL > sumsd["3rd Qu."]] <- 4
 
-ectoDlong <- hp.ectoDirect %>% gather("index","value",2:4)
-ectoDlong2 <- ectoDlong %>% gather("length_measure","length",7:11)
+summax <- summary(hp.ecto2$maxMaxL)
+hp.ecto2$max.lcat <- 1
+hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["1st Qu."]] <- 2
+hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["Median"]] <- 3
+hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["3rd Qu."]] <- 4
+
+sumcv <- summary(hp.ecto2$cvmaxL)
+hp.ecto2$cv.lcat <- 1
+hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["1st Qu."]] <- 2
+hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["Median"]] <- 3
+hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["3rd Qu."]] <- 4
+
+ectoDlong <- hp.ecto2 %>% gather("index","value",4:7)
+ectoDlong1 <- ectoDlong %>% gather("length_cat_measure","length_cat",c(13:16))
+ectoDlong2 <- ectoDlong1 %>% gather("length_measure","length",9:12)
 
 
-ectoDlong2 %>% filter(length_measure != "mean.lcat") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
+ectoDlong2 %>%  ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
-ectoDlong2 %>% filter(length_measure=="mean.lcat") %>% ggplot(data=.,aes(x=as.factor(length),y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + ylab("index value")
+# ectoDlong2 %>%  ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
+
+ectoDlong2 %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
 
 ```
 
-Negative binomial GLM seems like the best way to compare Ecto degree to quartiles of length categories. The estimates are log values, so exp() to get the estimate. Except, it's strictly positive so should use a zero truncated model?
 
-```{r ectoanalysis, echo=TRUE}
-summary(lm(data=hp.ectoDirect,cvmaxL~SPD))
-summary(lm(data=hp.ectoDirect,cvmaxL~VarSPD))
+
+```{r ectoanalysis, echo=FALSE,eval=FALSE}
+# Negative binomial GLM seems like the best way to compare Ecto degree to quartiles of length categories. The estimates are log values, so exp() to get the estimate. Except, it's strictly positive so should use a zero truncated model?
+summary(lm(data=hp.ecto2,cvmaxL~SPD))
 
 summary(lm(data=hp.ectoDirect,maxMaxL~SPD))
 summary(lm(data=hp.ectoDirect,maxMaxL~VarSPD))
@@ -122,68 +190,61 @@ library(MASS)
 summary(glm.nb(data=hp.ectoDirect,degree ~ cvmaxL))
 summary(glm.nb(data=hp.ectoDirect,degree ~ maxMaxL))
 summary(glm.nb(data=hp.ectoDirect,degree ~ meanMaxL))
-summary(glm.nb(data=hp.ectoDirect,degree ~ as.factor(mean.lcat)))
+summary(glm.nb(data=hp.ecto2,degree ~ as.factor(mean.lcat)))
 
 ```
 
+## Temperature (Region) and Generalism
+Clay's model predicts that generalists are more likely in cooler temperatures. Our measure of temperature based on region here is very, very rough. We see higher degree in cool regions, but slightly lower phylogenetic generalism. Could this be because of confounding with available hosts and higher host diversity in warm regions?
 
 
-```{r geo, echo=FALSE}
+```{r geo, echo=FALSE,warning=FALSE}
 # Use alternative index calculated with GEO
-load("~/dat/generalismtheory/hp.def.geo.RData")
-hp.geoDirect <- hp.def.geo %>% filter(Complex=="No")
-names(hp.geoDirect)[3:4] <- c("SPD","VarSPD")
+load("~/dat/generalismtheory/indices29maytraits_GEO.RData")
+names(generalism.traits.GEO)[5:9] <- c("PS","SPD","sSPD","PD","degree")
+generalism.traits.GEO$cvmaxL <- generalism.traits.GEO$sdMaxL/generalism.traits.GEO$meanMaxL
+
+hp.geoDirect <- generalism.traits.GEO %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD)
+
 GeoDirectEcto <- hp.geoDirect %>% filter(Endoparasite=="Ecto")
 GeoDirectEcto$GeoGroup <- NA
 GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("AFR","AUS","IND","NEO")] <- "warm"
 GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("ANT","NEA","PAL")] <- "cool"
 
-geoDlong <- GeoDirectEcto %>% gather("index","value",3:5)
+geoDlong <- GeoDirectEcto %>% gather("index","value",5:8)
 geoDlong %>% ggplot(data=.,aes(x=GEO,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
 geoDlong %>% ggplot(data=.,aes(x=GeoGroup,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free")
 
 ```
-```{r geoanalysis, echo=TRUE}
+
+
+
+
+```{r geoanalysis, echo=FALSE,eval=FALSE}
 summary(lm(data=GeoDirectEcto,SPD ~ GEO))
-summary(lm(data=GeoDirectEcto,VarSPD ~ GEO))
 
 summary(glm.nb(data=GeoDirectEcto,degree ~ GEO))
 
 summary(glm.nb(data=GeoDirectEcto,degree ~ GeoGroup))
 
 summary(lm(data=GeoDirectEcto,SPD ~ GeoGroup))
-summary(lm(data=GeoDirectEcto,VarSPD ~ GeoGroup))
+summary(lm(data=GeoDirectEcto,PD ~ GeoGroup))
 
 ```
 
-```{r complex,echo=FALSE}
-hp.comp <- hp.def %>% filter(Complex == "Yes" | Complex=="No")
-names(hp.comp)[2:3] <- c("SPD","VarSPD")
-complong <- hp.comp %>% gather("index","value",2:4) 
+## Trophic Transmission
+Amy  H's model predicts that parasites with trophic transmission are less likely to be generalists, but we see the opposite pattern in this data.
 
-complong %>% ggplot(data=.,aes(x=Complex,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
-```
-
-```{r complexanalysis, echo=TRUE}
-summary(glm.nb(data=hp.comp,degree ~ Complex))
-summary(lm(data=hp.comp,SPD ~ Complex))
-summary(lm(data=hp.comp,VarSPD ~ Complex))
-
-```
-
-
-```{r trophic,echo=FALSE}
-hp.trop <- hp.def %>% filter(Trophic == "Yes" | Trophic=="No")
-names(hp.trop)[2:3] <- c("SPD","VarSPD")
-troplong <- hp.trop %>% gather("index","value",2:4) 
+```{r trophic,echo=FALSE,warning=FALSE}
+hp.trop <- generalism.traits %>% filter(Trophic == "Yes" | Trophic=="No") %>% dplyr::select(-sSPD)
+troplong <- hp.trop %>% gather("index","value",4:7) 
 
 troplong %>% ggplot(data=.,aes(x=Trophic,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
 ```
 
-```{r trophicanalysis, echo=TRUE}
-summary(glm.nb(data=hp.trop,degree ~ Trophic))
+```{r trophicanalysis, echo=FALSE,eval=FALSE}
+summary(glm.nb(data=hp.trop,degree ~ Trophic)) # trophic higher - opposite of model predieciton
 summary(lm(data=hp.trop,SPD ~ Trophic))
-summary(lm(data=hp.trop,VarSPD ~ Trophic))
 
 with(hp.def,table(Trophic,Complex))
 # Trophic and Complex are almost perfectly correlated in this subset of the dataset.
