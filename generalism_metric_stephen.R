@@ -81,7 +81,9 @@ for(paras in 1:length(paralist)){
 pd_allhost$pname <- rownames(pd_allhost)
 generalism2 <- full_join(generalism,pd_allhost,by="pname")
 save(generalism2,file="~/dat/generalismtheory/indices29may.RData")
-generalism.traits <- left_join(generalism2,par.traits,by=c("pname"="new_pname"))
+load("~/dat/generalismtheory/defpartraits.RData")
+generalism.traits <- left_join(generalism2,hp.def.nogeo,by=c("pname"="new_pname"))
+generalism.traits[,2:6]<- as.numeric(unlist(generalism.traits[,2:6]))
 save(generalism.traits,file="~/dat/generalismtheory/indices29maytraits.RData")
 
 #########################################
@@ -131,5 +133,6 @@ pd_allhost_GEO$pnameGEO <- rownames(pd_allhost_GEO)
 generalism.GEO.2 <- full_join(generalism.GEO,pd_allhost_GEO,by="pnameGEO")
 generalismGEO <- separate(generalism.GEO.2,pnameGEO,c("pname","GEO"),sep = "_")
 save(generalismGEO,file="~/dat/generalismtheory/indices29may_geo.RData")
-generalism.traits.GEO <- left_join(generalismGEO,par.traits,by=c("pname"="new_pname"))
+generalism.traits.GEO <- left_join(generalismGEO,hp.def.geo,by=c("pname"="new_pname","GEO"))
+generalism.traits.GEO[,3:7]<- as.numeric(unlist(generalism.traits.GEO[,3:7]))
 save(generalism.traits.GEO,file="~/dat/generalismtheory/indices29maytraits_GEO.RData")

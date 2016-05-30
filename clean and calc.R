@@ -138,6 +138,9 @@ par.traits$new_Complex <- par.traits$Complex
 par.traits$new_Complex[as.numeric(par.traits$Host_no) > 1 & par.traits$Complex=="No"] <- NA # factor level 1 is "1"
 #endo.direct <- par.traits %>% filter(Endoparasite=="Endo")
 complexNA <- par.traits[which(is.na(par.traits$Complex)),]
+# Host_stage not accurate because only the first line if more than one host. Not a parasite trait...
+par.traits <- select(par.traits,-Host_stage)
+save(par.traits,file="~/dat/generalismtheory/par.traits.RData")
 
 #### HOW SHOULD I USE THIS DISTINCTION? What does NA mean? 
 hp <- dat.ph.drop %>% select(new_pname,new_hname,Host_stage,GEO) %>% distinct()
@@ -166,9 +169,9 @@ bipdefgeo <- dplyr::select(dat.ph.def,new_pname,new_hname,GEO) %>% distinct() %>
 save(bipdefgeo,file="~/dat/generalismtheory/bipdefgeo.RDdata")
 
 #################################
-index.complex <- dat.ph.def %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
-
-index.geo <- dat.ph.def %>% group_by(new_pname,GEO) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
+# index.complex <- dat.ph.def %>% group_by(new_pname) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
+# 
+# index.geo <- dat.ph.def %>% group_by(new_pname,GEO) %>% do(get.S_TD(as.character(.$new_hname),as.character(.$genus),as.character(.$hfamily),as.character(.$horder),as.character(.$hclass),as.character(.$hphylum))) %>% ungroup()
 
 hp.htraits <- left_join(hp,host.traits,by=c("new_hname","GEO"))
 hp.traits <- left_join(hp.htraits,par.traits,by=c("new_pname"))
@@ -177,11 +180,13 @@ hp.traits <- left_join(hp.htraits,par.traits,by=c("new_pname"))
 
 hp.psum.geo <- hp.traits %>% group_by(new_pname,GEO,Definitive,Intermediate,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T)) # THIS IS NOT DIVIDED BY INTERMEDIATE/DEFINITIVE
 
-hp.geo <- hp.traits %>% group_by(new_pname,GEO,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
+hp.def.traits <- filter(hp.traits,Definitive==1)
 
-hp.traits2 <- hp.traits %>% select(-GEO) %>% distinct()
-hp.psum.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
+hp.def.geo <- hp.def.traits %>% group_by(new_pname,GEO,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
 
+hp.traits2 <- hp.def.traits %>% select(-GEO) %>% distinct()
+hp.def.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T))
+save(hp.def.geo,hp.def.nogeo,file="~/dat/generalismtheory/defpartraits.RData")
 
 #
 hp.full.simple <- left_join(hp.psum.nogeo,index,by="new_pname")
