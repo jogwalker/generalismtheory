@@ -58,15 +58,6 @@ bipdefgeo.traits <- left_join(bipdefgeo.traits1,par.traits,by=c("new_pname"))
 save(bipdef.traits,bipdefgeo.traits,file="bipdeftraits30may.Rdata")
 # these files are used for calculating the metrics
 
-# hp.def.geo <- hp.traits %>% group_by(new_pname,GEO,P_Taxon,Endoparasite,new_Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T),n=sum(!is.na(maxL)))
-# 
-# 
-# hp.traits2 <- hp.traits %>% dplyr::select(-GEO) %>% distinct()
-# hp.def.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,new_Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T),n=sum(!is.na(maxL)))
-# save(hp.def.geo,hp.def.nogeo,file="~/dat/generalismtheory/defpartraits.RData")
-
-### calculate indices - and host traits at the same time??
-
 ```
 
 ```{r metrics,echo=FALSE,eval=FALSE}
@@ -77,56 +68,61 @@ library(gdata)
 library(picante)
 
 load("bipdeftraits30may.Rdata")
-load('160517_generalism_keyObj.RData') # tree called pgd_final
+load('pgd_final.RData') #matrix called pgd_final
 
 ############
-# FUNCTION
+# FUNCTIONS
 ###########
 
-calcMetrics <- function(assoc,paralist,hostlist,ro_allhost_tree,filename) {
-  cdmat <- makecdmat(assoc,paralist,hostlist)
-  pd_allhost <- pd(cdmat,ro_allhost_tree)
+calcMetrics <- function(assoc,ro_allhost_tree,pgd_final,filename) {
+  cdmat <- makecdmat(assoc)
+  pd_allhost <- suppressWarnings(pd(cdmat,ro_allhost_tree,include.root=FALSE)) # exclude root 
+  pd_allhost$new_pname <- rownames(pd_allhost)
   save(pd_allhost,file=paste("pd",filename,sep="_"))
-  gen <- calcother(assoc)
-  generalism <- full_join(pd_allhost,gen,by="pname")
+  gen <- calcother(assoc,pgd_final)
+  generalism <- full_join(gen,pd_allhost,by="new_pname")
+  save(generalism,file=filename)
+  return(generalism)
 }
 
-makecdmat <- function(assoc,paralist,hostlist) {
+makecdmat <- function(assoc) {
   # make a community data matrix (which is just a binary matrix to record associations - parasites as rows and hosts as columns)
+  paralist <- unique(assoc$new_pname)
+  hostlist <- unique(assoc$h_name)
   cdmat<-matrix(rep(0,length(paralist)*length(hostlist)),nrow=length(paralist))
   colnames(cdmat)<-hostlist
   rownames(cdmat)<-paralist
   for(paras in 1:length(paralist)){
-    hlist<-assoc[assoc$new_pname==paralist[paras],3]
+    hlist<-assoc[assoc$new_pname==paralist[paras],"h_name"]
     cdmat[paras,intersect(hlist, hostlist)]<-1
   }
+  return(cdmat)
 }
 
-###### CONTINUE FROM HERE
-calcother <- function(assoc) {
+
+hlistsum <- function(hlist,pgd_final) {
+  sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE) # only lower triangle
+  return(as.numeric(sumPGD))
+  #print(sumPGD)
+}
+
+calcother <- function(assoc,pgd_final) {
   
-  generalism <- assoc %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(hostN=n(),edges=(n()*(n()-1))/2,meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T)) # maybe doesn't make sense to do it this way for PS (sum of pgd)
-  # write another function that takes the hlist and sums in pgd_final
+  gen <- assoc %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(hostN=n(),edges=(n()*(n()-1))/2,meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T)) 
   
+  gen2 <- assoc %>% dplyr::select(-maxL,-new_hname) %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% do({
+    sumPGD <- hlistsum(.$h_name,pgd_final)
+    x <- .[1,]
+    x$sumPGD <- sumPGD
+    return(x)
+  }) %>% dplyr::select(-h_name)
   
-  
-  generalism<-data.frame(pname=character(), hostN=integer(), edges=integer(), sumPGD=numeric(), SPD=numeric(), sSPD=numeric(), meanMaxL=numeric(),maxMaxL=numeric(),cvMaxL=numeric(), stringsAsFactors=FALSE)
-  
-    # compute generalism scores for each parasite based on pairwise genetic distances of all hosts
-  for(paras in 1:length(paralist)){
-	  hlist<-assoc[assoc$new_pname==paralist[paras],3]
-    pname<-as.character(paralist[paras])
-	  hostN<-length(hlist)
-	  edges<-(hostN*(hostN-1))/2
-	  sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE)
-	  SPD<-sumPGD/edges
-	  sSPD<-hostN*STD
-	  meanMaxL <- 
-	  maxMaxL <- 
-	  cvMaxL <- 
-	  generalism[paras,]<-c(pname, hostN, edges, sumPGD, SPD, sSPD)
-  }
-  save()
+  gen3 <- full_join(gen,gen2,by=c("new_pname","P_Taxon","Endoparasite","Complex","Trophic","Horizontal"))
+  gen3$cvmaxL <- gen3$sdMaxL/gen3$meanMaxL
+  gen3$SPD <- gen3$sumPGD/gen3$edges
+  gen3$G <- as.numeric(gen3$hostN > 1)
+
+  return(gen3)
 }
 
 
@@ -147,79 +143,18 @@ ro_allhost_tree<-reorder(allhost_tree, "cladewise")
 ########################
 assoc <- bipdef.traits
 assoc$h_name <- gsub(" ","_",assoc$new_hname)
-paralist <- as.character(unique(assoc$new_pname))
+#paralist <- as.character(unique(assoc$new_pname))
+gen.noGEO <- calcMetrics(assoc,ro_allhost_tree,pgd_final,"gen.noGEO.RData")
 
 ########################
 # Calculate with GEO
 ########################
-
-
-
-
-
-#############################################################################
-
-
-pd_allhost$pname <- rownames(pd_allhost)
-generalism2 <- full_join(generalism,pd_allhost,by="pname")
-save(generalism2,file="~/dat/generalismtheory/indices29may.RData")
-load("~/dat/generalismtheory/defpartraits.RData")
-generalism.traits <- left_join(generalism2,hp.def.nogeo,by=c("pname"="new_pname"))
-generalism.traits[,2:6]<- as.numeric(unlist(generalism.traits[,2:6]))
-save(generalism.traits,file="~/dat/generalismtheory/indices29maytraits.RData")
-
-generalism.traits[generalism.traits$hostN!=generalism.traits$n,]
-#########################################
-## recalculate with individual GEOs
 assocG <- bipdefgeo.traits
 assocG$h_name <- gsub(" ","_",assocG$new_hname)
-# assocG$h_name[assocG$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
-# assocG <- filter(assocG,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
-assocG2 <- unite(assocG,paraloc,new_pname,GEO,sep="_",remove=FALSE)
-paralistG <- unique(assocG2[,1:2])
-
-#################
-cdmat<-matrix(rep(0,nrow(paralist)*length(colnames(pgd_final))),nrow=nrow(paralist))
-colnames(cdmat)<-colnames(pgd_final)
-rownames(cdmat)<-paralist$paraloc
-for(paras in 1:nrow(paralist)){
-  hlist<-assocG2[assocG2$paraloc==paralist$paraloc[paras],5]
-  cdmat[paras,intersect(hlist, colnames(pgd_final))]<-1
-}
-
-# compute phylogenetic diversity
-ro_allhost_tree<-reorder(allhost_tree, "cladewise")
-pd_allhost_GEO<-pd(cdmat, ro_allhost_tree)
-save(pd_allhost_GEO,file="~/dat/generalismtheory/pd_allhost_GEO.RData")
-
-###
-
-# make a dataframe with nrows=number of parasites i.e. length(paralist) and colnames=c("pname", "hostN", "edges", "sumPGD", "STD", "sSTD")
-generalism.GEO<-data.frame(pnameGEO=character(), hostN=integer(), edges=integer(), sumPGD=numeric(), STD=numeric(), sSTD=numeric(), stringsAsFactors=FALSE)
-
-# compute generalism scores for each parasite based on pairwise genetic distances of all hosts
-for(paras in 1:nrow(paralist)){
-  hlist<-assocG2[assocG2$paraloc==paralist$paraloc[paras],5]
-  #  hmat<-pgd_final[hlist, hlist]
-  #	for(i in 1:length(lowerTriangle(hmat))){if(is.na(lowerTriangle(hmat)[i])){lowerTriangle(hmat)[i]<-upperTriangle(hmat, byrow=TRUE)[i]}}
-  #	sumBLen_upgma<-sum(upgma(hmat)$edge.length)
-  pnameGEO<-as.character(paralist$paraloc[paras])
-  hostN<-length(hlist)
-  edges<-(hostN*(hostN-1))/2
-  sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE)
-  STD<-sumPGD/edges
-  sSTD<-hostN*STD
-  generalism.GEO[paras,]<-c(pnameGEO, hostN, edges, sumPGD, STD, sSTD)
-}
-
-pd_allhost_GEO$pnameGEO <- rownames(pd_allhost_GEO)
-generalism.GEO.2 <- full_join(generalism.GEO,pd_allhost_GEO,by="pnameGEO")
-generalismGEO <- separate(generalism.GEO.2,pnameGEO,c("pname","GEO"),sep = "_")
-save(generalismGEO,file="~/dat/generalismtheory/indices29may_geo.RData")
-generalism.traits.GEO <- left_join(generalismGEO,hp.def.geo,by=c("pname"="new_pname","GEO"))
-generalism.traits.GEO[,3:7]<- as.numeric(unlist(generalism.traits.GEO[,3:7]))
-save(generalism.traits.GEO,file="~/dat/generalismtheory/indices29maytraits_GEO.RData")
-
+assocG <- unite(assocG,new_pname,new_pname,GEO,sep="_",remove=TRUE) # need to make the pname + GEO
+gen.GEO <- calcMetrics(assocG,ro_allhost_tree,pgd_final,"gen.GEO.RData")
+#gen.GEO.s <- separate(gen.GEO,new_pname,"new_pname","GEO",sep="_",remove=TRUE)
+# think about GEO NA's
 
 ```
 
