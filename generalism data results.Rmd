@@ -14,7 +14,216 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(MASS)
+setwd("~/dat/generalismtheory/")
 ```
+
+```{r cleanmore,echo=FALSE,eval=FALSE}
+load("dat.ph.drop.RData")
+dat.ph.2 <- dat.ph.drop
+dat.ph.2$Definitive <- 0
+dat.ph.2$Definitive[dat.ph.2$Host_stage=="Definitive" | dat.ph.2$Host_stage=="Both"] <- 1
+dat.ph.2$Intermediate <- 0
+dat.ph.2$Intermediate[dat.ph.2$Host_stage=="Intermediate" | dat.ph.2$Host_stage=="Both"] <- 1
+dat.ph.def <- dat.ph.2 %>% filter(Definitive==1)
+# correct a few additional host names so they match phylogenetic data
+dat.ph.def$new_hname <- as.character(dat.ph.def$new_hname)
+# trinomials & nf....
+dat.ph.def$new_hname[dat.ph.def$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama kuschakewitschi" 
+dat.ph.def$new_hname[dat.ph.def$new_hname=="Tylosurus acus melanotus"] <- "Tylosurus acus" 
+dat.ph.def$new_hname[dat.ph.def$new_hname=="Esox americanus americanus"] <- "Esox americanus" 
+dat.ph.def$new_hname[dat.ph.def$new_hname=="Salvelinus leucomaenis pluvius"] <- "Salvelinus leucomaenis"
+dat.ph.def$new_hname[dat.ph.def$new_hname=="nf"] <- NA
+
+# separate out parasite traits in order to correct some errors
+par.traits <- dat.ph.def %>% dplyr::select(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal,Host_no) %>%  filter(!is.na(new_pname))  %>% filter(!(new_pname=="Spiracanthus bovichthys" & P_Taxon=="M")) %>% filter(!(new_pname=="Neoechinorhynchus cylindratus" & P_Taxon=="M")) %>% arrange(new_pname,Endoparasite,Complex,Trophic,Horizontal) %>% distinct(new_pname)
+par.traits$Complex[as.numeric(par.traits$Host_no) > 1 & par.traits$Complex=="No"] <- NA # factor level 1 is "1"
+par.traits <- par.traits %>% dplyr::select(-Host_no)
+
+
+###### assume global max host size as max host size
+host.traits <- dat.ph.def %>% dplyr::select(MaxL,new_hname) %>% group_by(new_hname) %>% summarize(maxL=max(MaxL,na.rm=T))
+
+# unique host parasite lists
+bipdef <- dplyr::select(dat.ph.def,new_pname,new_hname) %>% distinct() %>% arrange(new_pname,new_hname) %>% filter(!(is.na(new_pname) | is.na(new_hname)))
+
+bipdefgeo <- dplyr::select(dat.ph.def,new_pname,new_hname,GEO) %>% distinct() %>% arrange(new_pname,new_hname) %>% filter(!(is.na(new_pname) | is.na(new_hname)))
+
+# regroup
+bipdef.traits1 <- left_join(bipdef,host.traits,by=c("new_hname"))
+bipdef.traits <- left_join(bipdef.traits1,par.traits,by=c("new_pname"))
+
+bipdefgeo.traits1 <- left_join(bipdefgeo,host.traits,by=c("new_hname"))
+bipdefgeo.traits <- left_join(bipdefgeo.traits1,par.traits,by=c("new_pname"))
+
+save(bipdef.traits,bipdefgeo.traits,file="bipdeftraits30may.Rdata")
+# these files are used for calculating the metrics
+
+# hp.def.geo <- hp.traits %>% group_by(new_pname,GEO,P_Taxon,Endoparasite,new_Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T),n=sum(!is.na(maxL)))
+# 
+# 
+# hp.traits2 <- hp.traits %>% dplyr::select(-GEO) %>% distinct()
+# hp.def.nogeo <- hp.traits2 %>% group_by(new_pname,P_Taxon,Endoparasite,new_Complex,Trophic,Horizontal) %>% summarize(meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T),n=sum(!is.na(maxL)))
+# save(hp.def.geo,hp.def.nogeo,file="~/dat/generalismtheory/defpartraits.RData")
+
+### calculate indices - and host traits at the same time??
+
+```
+
+```{r metrics,echo=FALSE,eval=FALSE}
+
+library(ape)
+library(phangorn)
+library(gdata)
+library(picante)
+
+load("bipdeftraits30may.Rdata")
+load('160517_generalism_keyObj.RData') # tree called pgd_final
+
+############
+# FUNCTION
+###########
+
+calcMetrics <- function(assoc,paralist,hostlist,ro_allhost_tree,filename) {
+  cdmat <- makecdmat(assoc,paralist,hostlist)
+  pd_allhost <- pd(cdmat,ro_allhost_tree)
+  save(pd_allhost,file=paste("pd",filename,sep="_"))
+  gen <- calcother(assoc)
+  generalism <- full_join(pd_allhost,gen,by="pname")
+}
+
+makecdmat <- function(assoc,paralist,hostlist) {
+  # make a community data matrix (which is just a binary matrix to record associations - parasites as rows and hosts as columns)
+  cdmat<-matrix(rep(0,length(paralist)*length(hostlist)),nrow=length(paralist))
+  colnames(cdmat)<-hostlist
+  rownames(cdmat)<-paralist
+  for(paras in 1:length(paralist)){
+    hlist<-assoc[assoc$new_pname==paralist[paras],3]
+    cdmat[paras,intersect(hlist, hostlist)]<-1
+  }
+}
+
+###### CONTINUE FROM HERE
+calcother <- function(assoc) {
+  
+  generalism <- assoc %>% group_by(new_pname,P_Taxon,Endoparasite,Complex,Trophic,Horizontal) %>% summarize(hostN=n(),edges=(n()*(n()-1))/2,meanMaxL=mean(maxL,na.rm=T),sdMaxL=sd(maxL,na.rm=T),maxMaxL=max(maxL,na.rm=T)) # maybe doesn't make sense to do it this way for PS (sum of pgd)
+  # write another function that takes the hlist and sums in pgd_final
+  
+  
+  
+  generalism<-data.frame(pname=character(), hostN=integer(), edges=integer(), sumPGD=numeric(), SPD=numeric(), sSPD=numeric(), meanMaxL=numeric(),maxMaxL=numeric(),cvMaxL=numeric(), stringsAsFactors=FALSE)
+  
+    # compute generalism scores for each parasite based on pairwise genetic distances of all hosts
+  for(paras in 1:length(paralist)){
+	  hlist<-assoc[assoc$new_pname==paralist[paras],3]
+    pname<-as.character(paralist[paras])
+	  hostN<-length(hlist)
+	  edges<-(hostN*(hostN-1))/2
+	  sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE)
+	  SPD<-sumPGD/edges
+	  sSPD<-hostN*STD
+	  meanMaxL <- 
+	  maxMaxL <- 
+	  cvMaxL <- 
+	  generalism[paras,]<-c(pname, hostN, edges, sumPGD, SPD, sSPD)
+  }
+  save()
+}
+
+
+
+
+
+############
+# Make tree
+############
+# make the tree of all hosts (ultrametric using upgma)
+allhost_tree<-upgma(pgd_final)
+# plot(allhost_tree, show.tip.label = FALSE, direction="downwards")
+# plot(allhost_tree, show.tip.label = FALSE, type="fan")
+ro_allhost_tree<-reorder(allhost_tree, "cladewise")
+
+########################
+# Calculate without GEO
+########################
+assoc <- bipdef.traits
+assoc$h_name <- gsub(" ","_",assoc$new_hname)
+paralist <- as.character(unique(assoc$new_pname))
+
+########################
+# Calculate with GEO
+########################
+
+
+
+
+
+#############################################################################
+
+
+pd_allhost$pname <- rownames(pd_allhost)
+generalism2 <- full_join(generalism,pd_allhost,by="pname")
+save(generalism2,file="~/dat/generalismtheory/indices29may.RData")
+load("~/dat/generalismtheory/defpartraits.RData")
+generalism.traits <- left_join(generalism2,hp.def.nogeo,by=c("pname"="new_pname"))
+generalism.traits[,2:6]<- as.numeric(unlist(generalism.traits[,2:6]))
+save(generalism.traits,file="~/dat/generalismtheory/indices29maytraits.RData")
+
+generalism.traits[generalism.traits$hostN!=generalism.traits$n,]
+#########################################
+## recalculate with individual GEOs
+assocG <- bipdefgeo.traits
+assocG$h_name <- gsub(" ","_",assocG$new_hname)
+# assocG$h_name[assocG$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
+# assocG <- filter(assocG,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
+assocG2 <- unite(assocG,paraloc,new_pname,GEO,sep="_",remove=FALSE)
+paralistG <- unique(assocG2[,1:2])
+
+#################
+cdmat<-matrix(rep(0,nrow(paralist)*length(colnames(pgd_final))),nrow=nrow(paralist))
+colnames(cdmat)<-colnames(pgd_final)
+rownames(cdmat)<-paralist$paraloc
+for(paras in 1:nrow(paralist)){
+  hlist<-assocG2[assocG2$paraloc==paralist$paraloc[paras],5]
+  cdmat[paras,intersect(hlist, colnames(pgd_final))]<-1
+}
+
+# compute phylogenetic diversity
+ro_allhost_tree<-reorder(allhost_tree, "cladewise")
+pd_allhost_GEO<-pd(cdmat, ro_allhost_tree)
+save(pd_allhost_GEO,file="~/dat/generalismtheory/pd_allhost_GEO.RData")
+
+###
+
+# make a dataframe with nrows=number of parasites i.e. length(paralist) and colnames=c("pname", "hostN", "edges", "sumPGD", "STD", "sSTD")
+generalism.GEO<-data.frame(pnameGEO=character(), hostN=integer(), edges=integer(), sumPGD=numeric(), STD=numeric(), sSTD=numeric(), stringsAsFactors=FALSE)
+
+# compute generalism scores for each parasite based on pairwise genetic distances of all hosts
+for(paras in 1:nrow(paralist)){
+  hlist<-assocG2[assocG2$paraloc==paralist$paraloc[paras],5]
+  #  hmat<-pgd_final[hlist, hlist]
+  #	for(i in 1:length(lowerTriangle(hmat))){if(is.na(lowerTriangle(hmat)[i])){lowerTriangle(hmat)[i]<-upperTriangle(hmat, byrow=TRUE)[i]}}
+  #	sumBLen_upgma<-sum(upgma(hmat)$edge.length)
+  pnameGEO<-as.character(paralist$paraloc[paras])
+  hostN<-length(hlist)
+  edges<-(hostN*(hostN-1))/2
+  sumPGD<-sum(pgd_final[hlist, hlist], na.rm=TRUE)
+  STD<-sumPGD/edges
+  sSTD<-hostN*STD
+  generalism.GEO[paras,]<-c(pnameGEO, hostN, edges, sumPGD, STD, sSTD)
+}
+
+pd_allhost_GEO$pnameGEO <- rownames(pd_allhost_GEO)
+generalism.GEO.2 <- full_join(generalism.GEO,pd_allhost_GEO,by="pnameGEO")
+generalismGEO <- separate(generalism.GEO.2,pnameGEO,c("pname","GEO"),sep = "_")
+save(generalismGEO,file="~/dat/generalismtheory/indices29may_geo.RData")
+generalism.traits.GEO <- left_join(generalismGEO,hp.def.geo,by=c("pname"="new_pname","GEO"))
+generalism.traits.GEO[,3:7]<- as.numeric(unlist(generalism.traits.GEO[,3:7]))
+save(generalism.traits.GEO,file="~/dat/generalismtheory/indices29maytraits_GEO.RData")
+
+
+```
+
+
 ## Summary of Metrics Calculated
 Generalism, similar to diversity, can be measured in a number of ways. Poulin et al 2011 describe four facets of generalism: basic, phylogenetic, geographic, and ontogenetic. Basic metrics are calculated from numbers of hosts, phylogenetic metrics use genetic or taxonomic distances between hosts, geographic metrics look at specificity in space, and ontogenetic metrics look at specificity between life stages of the parasite. We don't expect these measures to be independent.
 
@@ -25,71 +234,74 @@ The metrics we calculate are:
 | Metric | Description | Facet | Source |
 |--------|-------------|-----------|-------|
 |degree  | number of hosts | basic | |
+|G | binary measure, G=1 if degree > 1 | basic | |
 | SPD | mean pairwise phylogenetic distance between all hosts | phylogenetic | Poulin & Mouillot |
 | Faith's PD | minimum total length of all the phylogenetic branches required to span all hosts on the phylogenetic tree | phylogenetic | Faith 1992 |
-| PS | sum of pairwise phylogenetic distance between all hosts |phylogenetic | Poulin 2011 |
+<!-- | PS | sum of pairwise phylogenetic distance between all hosts |phylogenetic | Poulin 2011 | -->
 
+Both phylogenetic metrics, SPD and Faith's PD, are only calculated for parasites with more than 1 host (G=1).
 
 ## Analysis Methods
 The generalism metrics for each parasite species were compared to measures of host and parasite characteristics (Table 1 in main document) for which theoretical predictions were made. 
 
-Metrics for parasites with direct or trophic life cycles were compared to summary measures (mean, maximum, standard deviation (SD), and coefficient of variation (CV)) of the maximum length reported for each of their hosts.  Note that SD and CV of the host length are only calculated for parasites with more than one host. Endoparasites and ectoparasites were assessed separately, with an additional categorical length measure used for ectoparasites, whereby the mean maximum length was divided into a categorical variable according to quartiles.
+Metrics for parasites with direct or trophic life cycles were compared to summary measures (mean, maximum, and coefficient of variation (CV)) of the maximum length reported for each of their hosts.  Note that CV of the host length is only calculated for parasites with more than one host. Endoparasites and ectoparasites were assessed separately, with an additional categorical length measure used for ectoparasites, whereby the mean maximum length was divided into a categorical variable according to quartiles.
 
-<!-- SPD is only calculated for parasites with more than one host. -->
+The effect of geographic region on parasites with direct or trophic life cycle was calculated for endoparasites and ectoparasites together. Regions were assessed as defined in Table 1 and also divided into two groups, where Antarctica, Nearctic, and Palearctic were assumed to be colder than Africa, Australia, Indopacific, and Neotropical regions. Some host-parasite associations were reported in more than one region, so for this analysis the generalism metrics were calculated separately for each region.
+
 <!-- Negative binomial generalized linear models (GLM) with log link functions were used for response variable degree, linear models were used for SPD.   -->
 <!-- PD & PS -->
 <!-- %%%%%%%%%%%%%%% -->
 
-<!-- The effect of geographic range on parasites with a direct life cycle was calculated for ectoparasites only, due to the small number of endoparasites with a direct life cycle. As above, a linear model/ANOVA was used to assess the effect of geographical category on SPD and VarSPD, while a negative binomial GLM was used for degree. Regions were assessed as defined in Table 1 and also divided into two groups, where Antarctica, Nearctic, and Palearctic were assumed to be colder than Africa, Australia, Indopacific, and Neotropical regions. Some host-parasite associations were reported in more than one region, so for this analysis the generalism metrics were calculated separately for each region. -->
+<!-- TAs above, a linear model/ANOVA was used to assess the effect of geographical category on SPD and VarSPD, while a negative binomial GLM was used for degree.  -->
 
 <!-- The binary parasite characteristics of complex life cycle and trophic transmission were compared to the parasite indices as above – using a linear model/t-test for SPD and VarSPD and a negative binomial GLM for degree. In this case, endo and ectoparasites are considered in the same analysis. -->
 
 ## Endoparasites & Host Body Size
-Subset to parasites known to either have a direct life cycle or trophic transmission (exclude complex non-trophic and NA)
-
-Clay's model predicts that there should be a positive correlation among parasites’ generalism index and both the maximum host body size and the mean or median body size across all host species. 
+Clay's model predicts that there should be a positive correlation among parasites’ generalism metrics and both the maximum host body size and the mean and CV body size across all host species. 
 
 For some measures we do see a positive correlation, and in particular there is a strong positive correlation between the coefficient of variation of host length and the mean phylogenetic distance between hosts (SPD).
 
-Many of the relationships are very non-linear. 
+Many of the relationships appear to be non-linear, but this is driven by outliers. 
 
 
 ```{r maxl,echo=FALSE,warning=FALSE}
 load("~/dat/generalismtheory/indices29maytraits.RData")
 names(generalism.traits)[4:8] <- c("PS","SPD","sSPD","PD","degree")
 generalism.traits$cvmaxL <- generalism.traits$sdMaxL/generalism.traits$meanMaxL
+generalism.traits$G <- as.numeric(generalism.traits$degree > 1)
+generalism.traits$PD[generalism.traits$G==0] <- NA
+
 hp.endo <- generalism.traits %>% filter(Endoparasite =="Endo")
+hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD,-PS,-sdMaxL)
 
-hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD)
+# # divide into quartiles
+# summean <- summary(hp.endo2$meanMaxL)
+# hp.endo2$mean.lcat <- 1
+# hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["1st Qu."]] <- 2
+# hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["Median"]] <- 3
+# hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["3rd Qu."]] <- 4
+# 
+# sumsd <- summary(hp.endo2$sdMaxL)
+# hp.endo2$sd.lcat <- 1
+# hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["1st Qu."]] <- 2
+# hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["Median"]] <- 3
+# hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["3rd Qu."]] <- 4
+# 
+# summax <- summary(hp.endo2$maxMaxL)
+# hp.endo2$max.lcat <- 1
+# hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["1st Qu."]] <- 2
+# hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["Median"]] <- 3
+# hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["3rd Qu."]] <- 4
+# 
+# sumcv <- summary(hp.endo2$cvmaxL)
+# hp.endo2$cv.lcat <- 1
+# hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["1st Qu."]] <- 2
+# hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["Median"]] <- 3
+# hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["3rd Qu."]] <- 4
 
-# divide into quartiles
-summean <- summary(hp.endo2$meanMaxL)
-hp.endo2$mean.lcat <- 1
-hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["1st Qu."]] <- 2
-hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["Median"]] <- 3
-hp.endo2$mean.lcat[hp.endo2$meanMaxL > summean["3rd Qu."]] <- 4
-
-sumsd <- summary(hp.endo2$sdMaxL)
-hp.endo2$sd.lcat <- 1
-hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["1st Qu."]] <- 2
-hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["Median"]] <- 3
-hp.endo2$sd.lcat[hp.endo2$sdMaxL > sumsd["3rd Qu."]] <- 4
-
-summax <- summary(hp.endo2$maxMaxL)
-hp.endo2$max.lcat <- 1
-hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["1st Qu."]] <- 2
-hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["Median"]] <- 3
-hp.endo2$max.lcat[hp.endo2$maxMaxL > summax["3rd Qu."]] <- 4
-
-sumcv <- summary(hp.endo2$cvmaxL)
-hp.endo2$cv.lcat <- 1
-hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["1st Qu."]] <- 2
-hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["Median"]] <- 3
-hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["3rd Qu."]] <- 4
-
-endoDlong <- hp.endo2 %>% gather("index","value",c(4:7))
-endoDlong1 <- endoDlong %>% gather("length_cat_measure","length_cat",c(13:16))
-endoDlong2 <- endoDlong1 %>% gather("length_measure","length",c(9:12))
+endoDlong <- hp.endo2 %>% gather("index","value",c(4:6,15))
+#endoDlong1 <- endoDlong %>% gather("length_cat_measure","length_cat",c(13:16))
+endoDlong2 <- endoDlong %>% gather("length_measure","length",c(9:11))
 
 endoDlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
@@ -206,7 +418,7 @@ generalism.traits.GEO$cvmaxL <- generalism.traits.GEO$sdMaxL/generalism.traits.G
 
 hp.geoDirect <- generalism.traits.GEO %>% filter(Trophic=="Yes" | Complex=="No") %>% dplyr::select(-sSPD)
 
-GeoDirectEcto <- hp.geoDirect %>% filter(Endoparasite=="Ecto")
+GeoDirectEcto <- hp.geoDirect #%>% filter(Endoparasite=="Ecto")
 GeoDirectEcto$GeoGroup <- NA
 GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("AFR","AUS","IND","NEO")] <- "warm"
 GeoDirectEcto$GeoGroup[GeoDirectEcto$GEO %in% c("ANT","NEA","PAL")] <- "cool"

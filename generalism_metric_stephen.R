@@ -31,9 +31,9 @@ library(picante)
 # update to use only definitive hosts (bipdef list)
 assoc <- bipdef
 assoc$h_name <- gsub(" ","_",assoc$new_hname)
-assoc$h_name[assoc$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
-assoc <- filter(assoc,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
-save(assoc,file="~/dat/generalismtheory/assoc_def.RData")
+# assoc$h_name[assoc$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
+# assoc <- filter(assoc,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
+# save(assoc,file="~/dat/generalismtheory/assoc_def.RData")
 
 paralist <- as.character(unique(assoc$new_pname))
 
@@ -86,12 +86,13 @@ generalism.traits <- left_join(generalism2,hp.def.nogeo,by=c("pname"="new_pname"
 generalism.traits[,2:6]<- as.numeric(unlist(generalism.traits[,2:6]))
 save(generalism.traits,file="~/dat/generalismtheory/indices29maytraits.RData")
 
+generalism.traits[generalism.traits$hostN!=generalism.traits$n,]
 #########################################
 ## recalculate with individual GEOs
 assocG <- bipdefgeo
 assocG$h_name <- gsub(" ","_",assocG$new_hname)
-assocG$h_name[assocG$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
-assocG <- filter(assocG,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
+# assocG$h_name[assocG$new_hname=="Capoetobrama kuschakewitschi kuschakewitsch"] <- "Capoetobrama_kuschakewitschi" #this one didn't match
+# assocG <- filter(assocG,h_name %in% colnames(pgd_final)) # drop a few more (checked not fixable)
 assocG2 <- unite(assocG,paraloc,new_pname,GEO,sep="_",remove=FALSE)
 paralist <- unique(assocG2[,1:2])
 
