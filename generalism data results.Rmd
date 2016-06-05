@@ -1,7 +1,7 @@
 ---
 title: "Generalism data results"
 author: "Josephine Walker"
-date: "31 May 2016"
+date: "5 June 2016"
 output: word_document
 ---
 
@@ -182,6 +182,26 @@ The effect of geographic region on parasites with direct or trophic life cycle w
 
 The generalism metrics each come from very different distributions, based on this GLMs were used as follows: for degree, negative binomial regression with a log link function (glm.nb() in R); for G, logistic regression (glm(family="binomial") in R); PD and SPD, linear regression (lm() in R), with PD log transformed. For lm(), assumptions of homoscedasticity and normality of residuals were assessed visually, and in some cases there was a bit of heteroscedasticity so there may be a bias in the standard error estimates, it has lower variance at higher values (but actually it has very few points at higher values, and so these have a lot of leverage in the estimates). [I considered doing bootstrapping to adjust p-values, or weighted least squares but not sure how to weight, but haven't done this...thoughts on better ways to do this analysis welcome!]
 
+# Endo vs Ecto (Direct only)
+```{r endoecto,echo=FALSE,warning=FALSE}
+load("~/dat/generalismtheory/gen.noGEO.RData")
+names(generalism)[17] <- c("degree")
+
+hp1 <- generalism %>% filter(Trophic=="No" & Complex=="No")
+hp1long <- hp1 %>% gather("index","value",14:17)
+hp1long %>% ggplot(data=.,aes(x=Endoparasite,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + ylab("index value") 
+
+infD2 <- glm.nb(data=hp1,degree ~ Endoparasite) 
+infG2 <- glm(data=hp1,G ~ Endoparasite,family="binomial") 
+infPD2 <- lm(data=hp1,log(PD+0.01) ~ Endoparasite)
+infSPD2 <- lm(data=hp1,SPD ~ Endoparasite) 
+
+with(hp1,table(Endoparasite,Complex))
+with(generalism,table(Endoparasite,Complex))
+with(generalism,table(Endoparasite,Trophic))
+
+```
+
 ## Endoparasites & Host Body Size
 Clay's model predicts that there should be a positive correlation among parasites’ generalism metrics and both the maximum host body size and the mean and CV body size across all host species. 
 
@@ -227,8 +247,20 @@ endoDlong <- hp.endo2 %>% gather("index","value",c(14:17))
 endoDlong2 <- endoDlong %>% gather("length_measure","length",c(9,11,13))
 
 # endoDlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
-
+endoDlong2$length_measure <- as.factor(endoDlong2$length_measure)
+levels(endoDlong2$length_measure) <- c("CV host length", "max host length", "mean host length")
 endoDlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
+
+endoDlong2 %>% filter(index=="degree") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("degree") + stat_smooth(method="glm.nb")
+
+endoDlong2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial"))
+
+endoDlong2$log <- log(endoDlong2$value+0.01)
+endoDlong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("log PD") + stat_smooth(method="lm") 
+
+endoDlong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm")
+
+
 
 # endoDlong2 %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
 ```
@@ -252,19 +284,19 @@ endoSPD3 <- lm(data=hp.endo2,SPD ~ meanMaxL) # negative
 
 ```
 
-| Metric | Length Measure | Model Coefficient | Std Error |
-|--------|-------------|-----------|-------|
-| degree | mean | `r round(coef(summary(endoD3))[2,1],digits=5)` |`r round(coef(summary(endoD3))[2,2],digits=5)` |
-| degree | max | `r round(coef(summary(endoD2))[2,1],digits=5)` |`r round(coef(summary(endoD2))[2,2],digits=5)` |
-| degree | CV | `r round(coef(summary(endoD1))[2,1],digits=5)` |`r round(coef(summary(endoD1))[2,2],digits=5)` |
-| G | mean | `r round(coef(summary(endoG3))[2,1],digits=5)` |`r round(coef(summary(endoG3))[2,2],digits=5)` |
-| G | max | `r round(coef(summary(endoG2))[2,1],digits=5)` |`r round(coef(summary(endoG2))[2,2],digits=5)` |
-| PD | mean | `r round(coef(summary(endoPD3))[2,1],digits=5)` |`r round(coef(summary(endoPD3))[2,2],digits=5)` |
-| PD | max | `r round(coef(summary(endoPD2))[2,1],digits=5)` |`r round(coef(summary(endoPD2))[2,2],digits=5)` |
-| PD | CV | `r round(coef(summary(endoPD1))[2,1],digits=5)` |`r round(coef(summary(endoPD1))[2,2],digits=5)` |
-| SPD | mean | `r round(coef(summary(endoSPD3))[2,1],digits=5)` |`r round(coef(summary(endoSPD3))[2,2],digits=5)` |
-| SPD | max | `r round(coef(summary(endoSPD2))[2,1],digits=5)` |`r round(coef(summary(endoSPD2))[2,2],digits=5)` |
-| SPD | CV | `r round(coef(summary(endoSPD1))[2,1],digits=5)` |`r round(coef(summary(endoSPD1))[2,2],digits=5)` |
+| Metric | Length Measure | Model Coefficient | Std Error | Conf Int |
+|--------|-------------|-----------|-------|-------|
+| degree | mean | `r round(coef(summary(endoD3))[2,1],digits=5)` |`r round(coef(summary(endoD3))[2,2],digits=5)` | `r round(confint(endoD3)[2,],digits=5)` |
+| degree | max | `r round(coef(summary(endoD2))[2,1],digits=5)` |`r round(coef(summary(endoD2))[2,2],digits=5)` | `r round(confint(endoD2)[2,],digits=5)` |
+| degree | CV | `r round(coef(summary(endoD1))[2,1],digits=5)` |`r round(coef(summary(endoD1))[2,2],digits=5)` | `r round(confint(endoD1)[2,],digits=5)` |
+| G | mean | `r round(coef(summary(endoG3))[2,1],digits=5)` |`r round(coef(summary(endoG3))[2,2],digits=5)` | `r round(confint(endoG3)[2,],digits=5)` |
+| G | max | `r round(coef(summary(endoG2))[2,1],digits=5)` |`r round(coef(summary(endoG2))[2,2],digits=5)` | `r round(confint(endoG2)[2,],digits=5)` |
+| PD | mean | `r round(coef(summary(endoPD3))[2,1],digits=5)` |`r round(coef(summary(endoPD3))[2,2],digits=5)` | `r round(confint(endoPD3)[2,],digits=5)` |
+| PD | max | `r round(coef(summary(endoPD2))[2,1],digits=5)` |`r round(coef(summary(endoPD2))[2,2],digits=5)` | `r round(confint(endoPD2)[2,],digits=5)` |
+| PD | CV | `r round(coef(summary(endoPD1))[2,1],digits=5)` |`r round(coef(summary(endoPD1))[2,2],digits=5)` | `r round(confint(endoPD1)[2,],digits=5)` |
+| SPD | mean | `r round(coef(summary(endoSPD3))[2,1],digits=5)` |`r round(coef(summary(endoSPD3))[2,2],digits=5)` | `r round(confint(endoSPD3)[2,],digits=5)` |
+| SPD | max | `r round(coef(summary(endoSPD2))[2,1],digits=5)` |`r round(coef(summary(endoSPD2))[2,2],digits=5)` | `r round(confint(endoSPD2)[2,],digits=5)` |
+| SPD | CV | `r round(coef(summary(endoSPD1))[2,1],digits=5)` |`r round(coef(summary(endoSPD1))[2,2],digits=5)` | `r round(confint(endoSPD1)[2,],digits=5)` |
 
 
 ## Ectoparasites & Host Body Size
@@ -299,12 +331,18 @@ ectoDlong <- hp.ecto2 %>% gather("index","value",14:17)
 ectoDlong1 <- ectoDlong %>% gather("length_cat_measure","length_cat",c(14:16))
 ectoDlong2 <- ectoDlong1 %>% gather("length_measure","length",c(9,11,13))
 
-
+ectoDlong2$length_measure <- as.factor(ectoDlong2$length_measure)
+levels(ectoDlong2$length_measure) <- c("CV host length", "max host length", "mean host length")
 # ectoDlong2 %>%  ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="lm")
 
 ectoDlong2 %>%  ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
 
 ectoDlong2 %>% filter(index!="G") %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
+#####
+
+
+
+
 
 ```
 
@@ -329,41 +367,44 @@ ectoSPD3 <- lm(data=hp.ecto2,SPD ~ as.factor(mean.lcat))
 
 ```
 
-| Metric | Length Measure | Quartile (ref=1) | Model Coefficient | Std Error |
-|--------|-------------|-----------|-------|--------|
-| degree | mean | 2 | `r round(coef(summary(ectoD3))[2,1],digits=5)` |`r round(coef(summary(ectoD3))[2,2],digits=5)` |
-| degree | mean | 3 | `r round(coef(summary(ectoD3))[3,1],digits=5)` |`r round(coef(summary(ectoD3))[3,2],digits=5)` |
-| degree | mean | 4 | `r round(coef(summary(ectoD3))[4,1],digits=5)` |`r round(coef(summary(ectoD3))[4,2],digits=5)` |
-| degree | max | 2 | `r round(coef(summary(ectoD2))[2,1],digits=5)` |`r round(coef(summary(ectoD2))[2,2],digits=5)` |
-| degree | max | 3 | `r round(coef(summary(ectoD2))[3,1],digits=5)` |`r round(coef(summary(ectoD2))[3,2],digits=5)` |
-| degree | max | 4 | `r round(coef(summary(ectoD2))[4,1],digits=5)` |`r round(coef(summary(ectoD2))[4,2],digits=5)` |
-| degree | CV | 2 | `r round(coef(summary(ectoD1))[2,1],digits=5)` |`r round(coef(summary(ectoD1))[2,2],digits=5)` |
-| degree | CV | 3 | `r round(coef(summary(ectoD1))[3,1],digits=5)` |`r round(coef(summary(ectoD1))[3,2],digits=5)` |
-| degree | CV | 4 | `r round(coef(summary(ectoD1))[4,1],digits=5)` |`r round(coef(summary(ectoD1))[4,2],digits=5)` |
-| G | mean | 2 | `r round(coef(summary(ectoG3))[2,1],digits=5)` |`r round(coef(summary(ectoG3))[2,2],digits=5)` |
-| G | mean | 3 | `r round(coef(summary(ectoG3))[3,1],digits=5)` |`r round(coef(summary(ectoG3))[3,2],digits=5)` |
-| G | mean | 4 | `r round(coef(summary(ectoG3))[4,1],digits=5)` |`r round(coef(summary(ectoG3))[4,2],digits=5)` |
-| G | max | 2 | `r round(coef(summary(ectoG2))[2,1],digits=5)` |`r round(coef(summary(ectoG2))[2,2],digits=5)` |
-| G | max | 3 | `r round(coef(summary(ectoG2))[3,1],digits=5)` |`r round(coef(summary(ectoG2))[3,2],digits=5)` |
-| G | max | 4 | `r round(coef(summary(ectoG2))[4,1],digits=5)` |`r round(coef(summary(ectoG2))[4,2],digits=5)` |
-| PD | mean | 2 | `r round(coef(summary(ectoPD3))[2,1],digits=5)` |`r round(coef(summary(ectoPD3))[2,2],digits=5)` |
-| PD | mean | 3 | `r round(coef(summary(ectoPD3))[3,1],digits=5)` |`r round(coef(summary(ectoPD3))[3,2],digits=5)` |
-| PD | mean | 4 | `r round(coef(summary(ectoPD3))[4,1],digits=5)` |`r round(coef(summary(ectoPD3))[4,2],digits=5)` |
-| PD | max | 2 | `r round(coef(summary(ectoPD2))[2,1],digits=5)` |`r round(coef(summary(ectoPD2))[2,2],digits=5)` |
-| PD | max | 3 | `r round(coef(summary(ectoPD2))[3,1],digits=5)` |`r round(coef(summary(ectoPD2))[3,2],digits=5)` |
-| PD | max | 4 | `r round(coef(summary(ectoPD2))[4,1],digits=5)` |`r round(coef(summary(ectoPD2))[4,2],digits=5)` |
-| PD | CV | 2 | `r round(coef(summary(ectoPD1))[2,1],digits=5)` |`r round(coef(summary(ectoPD1))[2,2],digits=5)` |
-| PD | CV | 3 | `r round(coef(summary(ectoPD1))[3,1],digits=5)` |`r round(coef(summary(ectoPD1))[3,2],digits=5)` |
-| PD | CV | 4 | `r round(coef(summary(ectoPD1))[4,1],digits=5)` |`r round(coef(summary(ectoPD1))[4,2],digits=5)` |
-| SPD | mean | 2 | `r round(coef(summary(ectoSPD3))[2,1],digits=5)` |`r round(coef(summary(ectoSPD3))[2,2],digits=5)` |
-| SPD | mean | 3 | `r round(coef(summary(ectoSPD3))[3,1],digits=5)` |`r round(coef(summary(ectoSPD3))[3,2],digits=5)` |
-| SPD | mean | 4 | `r round(coef(summary(ectoSPD3))[4,1],digits=5)` |`r round(coef(summary(ectoSPD3))[4,2],digits=5)` |
-| SPD | max | 2 | `r round(coef(summary(ectoSPD2))[2,1],digits=5)` |`r round(coef(summary(ectoSPD2))[2,2],digits=5)` |
-| SPD | max | 3 | `r round(coef(summary(ectoSPD2))[3,1],digits=5)` |`r round(coef(summary(ectoSPD2))[3,2],digits=5)` |
-| SPD | max | 4 | `r round(coef(summary(ectoSPD2))[4,1],digits=5)` |`r round(coef(summary(ectoSPD2))[4,2],digits=5)` |
-| SPD | CV | 2 | `r round(coef(summary(ectoSPD1))[2,1],digits=5)` |`r round(coef(summary(ectoSPD1))[2,2],digits=5)` |
-| SPD | CV | 3 | `r round(coef(summary(ectoSPD1))[3,1],digits=5)` |`r round(coef(summary(ectoSPD1))[3,2],digits=5)` |
-| SPD | CV | 4 | `r round(coef(summary(ectoSPD1))[4,1],digits=5)` |`r round(coef(summary(ectoSPD1))[4,2],digits=5)` |
+| Metric | Length Measure | Quartile (ref=1) | Model Coefficient | Std Error | Conf Int |
+|--------|-------------|-----------|-------|--------|--------|
+| degree | mean | 2 | `r round(coef(summary(ectoD3))[2,1],digits=5)` |`r round(coef(summary(ectoD3))[2,2],digits=5)` | `r round(confint(ectoD3)[2,],digits=5)` |
+| degree | mean | 3 | `r round(coef(summary(ectoD3))[3,1],digits=5)` |`r round(coef(summary(ectoD3))[3,2],digits=5)` | `r round(confint(ectoD3)[3,],digits=5)` |
+| degree | mean | 4 | `r round(coef(summary(ectoD3))[4,1],digits=5)` |`r round(coef(summary(ectoD3))[4,2],digits=5)` | `r round(confint(ectoD3)[4,],digits=5)` |
+| degree | max | 2 | `r round(coef(summary(ectoD2))[2,1],digits=5)` |`r round(coef(summary(ectoD2))[2,2],digits=5)` | `r round(confint(ectoD2)[2,],digits=5)` |
+| degree | max | 3 | `r round(coef(summary(ectoD2))[3,1],digits=5)` |`r round(coef(summary(ectoD2))[3,2],digits=5)` | `r round(confint(ectoD2)[3,],digits=5)` |
+| degree | max | 4 | `r round(coef(summary(ectoD2))[4,1],digits=5)` |`r round(coef(summary(ectoD2))[4,2],digits=5)` | `r round(confint(ectoD2)[4,],digits=5)` |
+| degree | CV | 2 | `r round(coef(summary(ectoD1))[2,1],digits=5)` |`r round(coef(summary(ectoD1))[2,2],digits=5)` | `r round(confint(ectoD1)[2,],digits=5)` |
+| degree | CV | 3 | `r round(coef(summary(ectoD1))[3,1],digits=5)` |`r round(coef(summary(ectoD1))[3,2],digits=5)` | `r round(confint(ectoD1)[3,],digits=5)` |
+| degree | CV | 4 | `r round(coef(summary(ectoD1))[4,1],digits=5)` |`r round(coef(summary(ectoD1))[4,2],digits=5)` | `r round(confint(ectoD1)[4,],digits=5)` |
+| G | mean | 2 | `r round(coef(summary(ectoG3))[2,1],digits=5)` |`r round(coef(summary(ectoG3))[2,2],digits=5)` | `r round(confint(ectoG3)[2,],digits=5)` |
+| G | mean | 3 | `r round(coef(summary(ectoG3))[3,1],digits=5)` |`r round(coef(summary(ectoG3))[3,2],digits=5)` | `r round(confint(ectoG3)[3,],digits=5)` |
+| G | mean | 4 | `r round(coef(summary(ectoG3))[4,1],digits=5)` |`r round(coef(summary(ectoG3))[4,2],digits=5)` | `r round(confint(ectoG3)[4,],digits=5)` |
+| G | max | 2 | `r round(coef(summary(ectoG2))[2,1],digits=5)` |`r round(coef(summary(ectoG2))[2,2],digits=5)` | `r round(confint(ectoG2)[2,],digits=5)` |
+| G | max | 3 | `r round(coef(summary(ectoG2))[3,1],digits=5)` |`r round(coef(summary(ectoG2))[3,2],digits=5)` | `r round(confint(ectoG2)[3,],digits=5)` |
+| G | max | 4 | `r round(coef(summary(ectoG2))[4,1],digits=5)` |`r round(coef(summary(ectoG2))[4,2],digits=5)` | `r round(confint(ectoG2)[4,],digits=5)` |
+| PD | mean | 2 | `r round(coef(summary(ectoPD3))[2,1],digits=5)` |`r round(coef(summary(ectoPD3))[2,2],digits=5)` | `r round(confint(ectoPD3)[2,],digits=5)` |
+| PD | mean | 3 | `r round(coef(summary(ectoPD3))[3,1],digits=5)` |`r round(coef(summary(ectoPD3))[3,2],digits=5)` | `r round(confint(ectoPD3)[3,],digits=5)` |
+| PD | mean | 4 | `r round(coef(summary(ectoPD3))[4,1],digits=5)` |`r round(coef(summary(ectoPD3))[4,2],digits=5)` | `r round(confint(ectoPD3)[4,],digits=5)` |
+| PD | max | 2 | `r round(coef(summary(ectoPD2))[2,1],digits=5)` |`r round(coef(summary(ectoPD2))[2,2],digits=5)` | `r round(confint(ectoPD2)[2,],digits=5)` |
+| PD | max | 3 | `r round(coef(summary(ectoPD2))[3,1],digits=5)` |`r round(coef(summary(ectoPD2))[3,2],digits=5)` | `r round(confint(ectoPD2)[3,],digits=5)` |
+| PD | max | 4 | `r round(coef(summary(ectoPD2))[4,1],digits=5)` |`r round(coef(summary(ectoPD2))[4,2],digits=5)` | `r round(confint(ectoPD2)[4,],digits=5)` |
+| PD | CV | 2 | `r round(coef(summary(ectoPD1))[2,1],digits=5)` |`r round(coef(summary(ectoPD1))[2,2],digits=5)` | `r round(confint(ectoPD1)[2,],digits=5)` |
+| PD | CV | 3 | `r round(coef(summary(ectoPD1))[3,1],digits=5)` |`r round(coef(summary(ectoPD1))[3,2],digits=5)` | `r round(confint(ectoPD1)[3,],digits=5)` |
+| PD | CV | 4 | `r round(coef(summary(ectoPD1))[4,1],digits=5)` |`r round(coef(summary(ectoPD1))[4,2],digits=5)` | `r round(confint(ectoPD1)[4,],digits=5)` |
+| SPD | mean | 2 | `r round(coef(summary(ectoSPD3))[2,1],digits=5)` |`r round(coef(summary(ectoSPD3))[2,2],digits=5)` | `r round(confint(ectoSPD3)[2,],digits=5)` |
+| SPD | mean | 3 | `r round(coef(summary(ectoSPD3))[3,1],digits=5)` |`r round(coef(summary(ectoSPD3))[3,2],digits=5)` | `r round(confint(ectoSPD3)[3,],digits=5)` |
+| SPD | mean | 4 | `r round(coef(summary(ectoSPD3))[4,1],digits=5)` |`r round(coef(summary(ectoSPD3))[4,2],digits=5)` | `r round(confint(ectoSPD3)[4,],digits=5)` |
+| SPD | max | 2 | `r round(coef(summary(ectoSPD2))[2,1],digits=5)` |`r round(coef(summary(ectoSPD2))[2,2],digits=5)` | `r round(confint(ectoSPD2)[2,],digits=5)` |
+| SPD | max | 3 | `r round(coef(summary(ectoSPD2))[3,1],digits=5)` |`r round(coef(summary(ectoSPD2))[3,2],digits=5)` | `r round(confint(ectoSPD2)[3,],digits=5)` |
+| SPD | max | 4 | `r round(coef(summary(ectoSPD2))[4,1],digits=5)` |`r round(coef(summary(ectoSPD2))[4,2],digits=5)` | `r round(confint(ectoSPD2)[4,],digits=5)` |
+| SPD | CV | 2 | `r round(coef(summary(ectoSPD1))[2,1],digits=5)` |`r round(coef(summary(ectoSPD1))[2,2],digits=5)` | `r round(confint(ectoSPD1)[2,],digits=5)` |
+| SPD | CV | 3 | `r round(coef(summary(ectoSPD1))[3,1],digits=5)` |`r round(coef(summary(ectoSPD1))[3,2],digits=5)` | `r round(confint(ectoSPD1)[3,],digits=5)` |
+| SPD | CV | 4 | `r round(coef(summary(ectoSPD1))[4,1],digits=5)` |`r round(coef(summary(ectoSPD1))[4,2],digits=5)` | `r round(confint(ectoSPD1)[4,],digits=5)` |
+
+
+
 
 ## Temperature (Region) and Generalism
 Clay's model predicts that generalists are more likely in cooler temperatures. Our measure of temperature based on region here is very, very rough. We see higher degree in cool regions, but slightly lower phylogenetic generalism. Could this be because of confounding with available hosts and higher host diversity in warm regions?
@@ -384,8 +425,11 @@ hp.geoDirect$GeoGroup = factor(hp.geoDirect$GeoGroup,levels(factor(hp.geoDirect$
 hp.geoDirect$GEO = factor(hp.geoDirect$GEO,levels(factor(hp.geoDirect$GEO))[c(1,3,4,6,2,5,7)])
 
 geoDlong <- hp.geoDirect %>% gather("index","value",15:18)
-geoDlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free") 
-geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_violin() + theme_bw() + facet_wrap(~index,scales="free")
+geoDlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+
+geoDlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + theme(legend.position="none")
+
 
 ```
 
@@ -399,15 +443,14 @@ geoD2 <- glm.nb(data=hp.geoDirect,degree ~ GeoGroup)
 geoG2 <- glm(data=hp.geoDirect,G ~ GeoGroup,family="binomial") 
 geoPD2 <- lm(data=hp.geoDirect,log(PD+0.01) ~ GeoGroup)
 geoSPD2 <- lm(data=hp.geoDirect,SPD ~ GeoGroup) 
-
 ```
 
-| Metric | Model Coefficient (ref="warm") | Std Error |
-|--------|-----------|-------|
-| degree |  `r round(coef(summary(geoD2))[2,1],digits=5)` |`r round(coef(summary(geoD2))[2,2],digits=5)` |
-| G |  `r round(coef(summary(geoG2))[2,1],digits=5)` |`r round(coef(summary(geoG2))[2,2],digits=5)` |
-| PD |  `r round(coef(summary(geoPD2))[2,1],digits=5)` |`r round(coef(summary(geoPD2))[2,2],digits=5)` |
-| SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=5)` |`r round(coef(summary(geoSPD2))[2,2],digits=5)` |
+| Metric | Model Coefficient (ref="warm") | Std Error | Conf Int |
+|--------|-----------|-------|------|
+| degree |  `r round(coef(summary(geoD2))[2,1],digits=5)` |`r round(coef(summary(geoD2))[2,2],digits=5)` | `r round(confint(geoD2)[2,],digits=5)` | 
+| G |  `r round(coef(summary(geoG2))[2,1],digits=5)` |`r round(coef(summary(geoG2))[2,2],digits=5)` | `r round(confint(geoG2)[2,],digits=5)` |
+| PD |  `r round(coef(summary(geoPD2))[2,1],digits=5)` |`r round(coef(summary(geoPD2))[2,2],digits=5)` | `r round(confint(geoPD2)[2,],digits=5)` |
+| SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=5)` |`r round(coef(summary(geoSPD2))[2,2],digits=5)` | `r round(confint(geoSPD2)[2,],digits=5)` |
 
 ## Trophic Transmission
 Amy  H's model predicts that parasites with trophic transmission are less likely to be generalists, but we see the opposite pattern in this data.
