@@ -288,17 +288,17 @@ endoSPD3 <- lm(data=hp.endo2,SPD ~ meanMaxL) # negative
 
 | Metric | Length Measure | Model Coefficient | Std Error | Conf Int |
 |--------|-------------|-----------|-------|-------|
-| degree | mean | `r round(coef(summary(endoD3))[2,1],digits=5)` |`r round(coef(summary(endoD3))[2,2],digits=5)` | `r round(confint(endoD3)[2,],digits=5)` |
-| degree | max | `r round(coef(summary(endoD2))[2,1],digits=5)` |`r round(coef(summary(endoD2))[2,2],digits=5)` | `r round(confint(endoD2)[2,],digits=5)` |
-| degree | CV | `r round(coef(summary(endoD1))[2,1],digits=5)` |`r round(coef(summary(endoD1))[2,2],digits=5)` | `r round(confint(endoD1)[2,],digits=5)` |
-| G | mean | `r round(coef(summary(endoG3))[2,1],digits=5)` |`r round(coef(summary(endoG3))[2,2],digits=5)` | `r round(confint(endoG3)[2,],digits=5)` |
-| G | max | `r round(coef(summary(endoG2))[2,1],digits=5)` |`r round(coef(summary(endoG2))[2,2],digits=5)` | `r round(confint(endoG2)[2,],digits=5)` |
-| PD | mean | `r round(coef(summary(endoPD3))[2,1],digits=5)` |`r round(coef(summary(endoPD3))[2,2],digits=5)` | `r round(confint(endoPD3)[2,],digits=5)` |
-| PD | max | `r round(coef(summary(endoPD2))[2,1],digits=5)` |`r round(coef(summary(endoPD2))[2,2],digits=5)` | `r round(confint(endoPD2)[2,],digits=5)` |
-| PD | CV | `r round(coef(summary(endoPD1))[2,1],digits=5)` |`r round(coef(summary(endoPD1))[2,2],digits=5)` | `r round(confint(endoPD1)[2,],digits=5)` |
-| SPD | mean | `r round(coef(summary(endoSPD3))[2,1],digits=5)` |`r round(coef(summary(endoSPD3))[2,2],digits=5)` | `r round(confint(endoSPD3)[2,],digits=5)` |
-| SPD | max | `r round(coef(summary(endoSPD2))[2,1],digits=5)` |`r round(coef(summary(endoSPD2))[2,2],digits=5)` | `r round(confint(endoSPD2)[2,],digits=5)` |
-| SPD | CV | `r round(coef(summary(endoSPD1))[2,1],digits=5)` |`r round(coef(summary(endoSPD1))[2,2],digits=5)` | `r round(confint(endoSPD1)[2,],digits=5)` |
+| degree | mean | `r round(coef(summary(endoD3))[2,1],digits=8)` |$`r round(coef(summary(endoD3))[2,2],digits=8)`$ | `r round(confint(endoD3)[2,],digits=8)` |
+| degree | max | `r round(coef(summary(endoD2))[2,1],digits=8)` |`r round(coef(summary(endoD2))[2,2],digits=8)` | `r round(confint(endoD2)[2,],digits=8)` |
+| degree | CV | `r round(coef(summary(endoD1))[2,1],digits=8)` |`r round(coef(summary(endoD1))[2,2],digits=8)` | `r round(confint(endoD1)[2,],digits=8)` |
+| G | mean | `r round(coef(summary(endoG3))[2,1],digits=8)` |`r round(coef(summary(endoG3))[2,2],digits=8)` | `r round(confint(endoG3)[2,],digits=8)` |
+| G | max | `r round(coef(summary(endoG2))[2,1],digits=8)` |`r round(coef(summary(endoG2))[2,2],digits=8)` | `r round(confint(endoG2)[2,],digits=8)` |
+| PD | mean | `r round(coef(summary(endoPD3))[2,1],digits=8)` |`r round(coef(summary(endoPD3))[2,2],digits=8)` | `r round(confint(endoPD3)[2,],digits=8)` |
+| PD | max | `r round(coef(summary(endoPD2))[2,1],digits=8)` |`r round(coef(summary(endoPD2))[2,2],digits=8)` | `r round(confint(endoPD2)[2,],digits=8)` |
+| PD | CV | `r round(coef(summary(endoPD1))[2,1],digits=8)` |`r round(coef(summary(endoPD1))[2,2],digits=8)` | `r round(confint(endoPD1)[2,],digits=8)` |
+| SPD | mean | `r round(coef(summary(endoSPD3))[2,1],digits=8)` |`r round(coef(summary(endoSPD3))[2,2],digits=8)` | `r round(confint(endoSPD3)[2,],digits=8)` |
+| SPD | max | `r round(coef(summary(endoSPD2))[2,1],digits=8)` |`r round(coef(summary(endoSPD2))[2,2],digits=8)` | `r round(confint(endoSPD2)[2,],digits=8)` |
+| SPD | CV | `r round(coef(summary(endoSPD1))[2,1],digits=8)` |`r round(coef(summary(endoSPD1))[2,2],digits=8)` | `r round(confint(endoSPD1)[2,],digits=8)` |
 
 
 ## Ectoparasites & Host Body Size
@@ -378,39 +378,39 @@ ectoSPD3 <- lm(data=hp.ecto2,SPD ~ as.factor(mean.lcat))
 
 | Metric | Length Measure | Quartile (ref=1) | Model Coefficient | Std Error | Conf Int |
 |--------|-------------|-----------|-------|--------|--------|
-| degree | mean | 2 | `r round(coef(summary(ectoD3))[2,1],digits=5)` |`r round(coef(summary(ectoD3))[2,2],digits=5)` | `r round(confint(ectoD3)[2,],digits=5)` |
-| degree | mean | 3 | `r round(coef(summary(ectoD3))[3,1],digits=5)` |`r round(coef(summary(ectoD3))[3,2],digits=5)` | `r round(confint(ectoD3)[3,],digits=5)` |
-| degree | mean | 4 | `r round(coef(summary(ectoD3))[4,1],digits=5)` |`r round(coef(summary(ectoD3))[4,2],digits=5)` | `r round(confint(ectoD3)[4,],digits=5)` |
-| degree | max | 2 | `r round(coef(summary(ectoD2))[2,1],digits=5)` |`r round(coef(summary(ectoD2))[2,2],digits=5)` | `r round(confint(ectoD2)[2,],digits=5)` |
-| degree | max | 3 | `r round(coef(summary(ectoD2))[3,1],digits=5)` |`r round(coef(summary(ectoD2))[3,2],digits=5)` | `r round(confint(ectoD2)[3,],digits=5)` |
-| degree | max | 4 | `r round(coef(summary(ectoD2))[4,1],digits=5)` |`r round(coef(summary(ectoD2))[4,2],digits=5)` | `r round(confint(ectoD2)[4,],digits=5)` |
-| degree | CV | 2 | `r round(coef(summary(ectoD1))[2,1],digits=5)` |`r round(coef(summary(ectoD1))[2,2],digits=5)` | `r round(confint(ectoD1)[2,],digits=5)` |
-| degree | CV | 3 | `r round(coef(summary(ectoD1))[3,1],digits=5)` |`r round(coef(summary(ectoD1))[3,2],digits=5)` | `r round(confint(ectoD1)[3,],digits=5)` |
-| degree | CV | 4 | `r round(coef(summary(ectoD1))[4,1],digits=5)` |`r round(coef(summary(ectoD1))[4,2],digits=5)` | `r round(confint(ectoD1)[4,],digits=5)` |
-| G | mean | 2 | `r round(coef(summary(ectoG3))[2,1],digits=5)` |`r round(coef(summary(ectoG3))[2,2],digits=5)` | `r round(confint(ectoG3)[2,],digits=5)` |
-| G | mean | 3 | `r round(coef(summary(ectoG3))[3,1],digits=5)` |`r round(coef(summary(ectoG3))[3,2],digits=5)` | `r round(confint(ectoG3)[3,],digits=5)` |
-| G | mean | 4 | `r round(coef(summary(ectoG3))[4,1],digits=5)` |`r round(coef(summary(ectoG3))[4,2],digits=5)` | `r round(confint(ectoG3)[4,],digits=5)` |
-| G | max | 2 | `r round(coef(summary(ectoG2))[2,1],digits=5)` |`r round(coef(summary(ectoG2))[2,2],digits=5)` | `r round(confint(ectoG2)[2,],digits=5)` |
-| G | max | 3 | `r round(coef(summary(ectoG2))[3,1],digits=5)` |`r round(coef(summary(ectoG2))[3,2],digits=5)` | `r round(confint(ectoG2)[3,],digits=5)` |
-| G | max | 4 | `r round(coef(summary(ectoG2))[4,1],digits=5)` |`r round(coef(summary(ectoG2))[4,2],digits=5)` | `r round(confint(ectoG2)[4,],digits=5)` |
-| PD | mean | 2 | `r round(coef(summary(ectoPD3))[2,1],digits=5)` |`r round(coef(summary(ectoPD3))[2,2],digits=5)` | `r round(confint(ectoPD3)[2,],digits=5)` |
-| PD | mean | 3 | `r round(coef(summary(ectoPD3))[3,1],digits=5)` |`r round(coef(summary(ectoPD3))[3,2],digits=5)` | `r round(confint(ectoPD3)[3,],digits=5)` |
-| PD | mean | 4 | `r round(coef(summary(ectoPD3))[4,1],digits=5)` |`r round(coef(summary(ectoPD3))[4,2],digits=5)` | `r round(confint(ectoPD3)[4,],digits=5)` |
-| PD | max | 2 | `r round(coef(summary(ectoPD2))[2,1],digits=5)` |`r round(coef(summary(ectoPD2))[2,2],digits=5)` | `r round(confint(ectoPD2)[2,],digits=5)` |
-| PD | max | 3 | `r round(coef(summary(ectoPD2))[3,1],digits=5)` |`r round(coef(summary(ectoPD2))[3,2],digits=5)` | `r round(confint(ectoPD2)[3,],digits=5)` |
-| PD | max | 4 | `r round(coef(summary(ectoPD2))[4,1],digits=5)` |`r round(coef(summary(ectoPD2))[4,2],digits=5)` | `r round(confint(ectoPD2)[4,],digits=5)` |
-| PD | CV | 2 | `r round(coef(summary(ectoPD1))[2,1],digits=5)` |`r round(coef(summary(ectoPD1))[2,2],digits=5)` | `r round(confint(ectoPD1)[2,],digits=5)` |
-| PD | CV | 3 | `r round(coef(summary(ectoPD1))[3,1],digits=5)` |`r round(coef(summary(ectoPD1))[3,2],digits=5)` | `r round(confint(ectoPD1)[3,],digits=5)` |
-| PD | CV | 4 | `r round(coef(summary(ectoPD1))[4,1],digits=5)` |`r round(coef(summary(ectoPD1))[4,2],digits=5)` | `r round(confint(ectoPD1)[4,],digits=5)` |
-| SPD | mean | 2 | `r round(coef(summary(ectoSPD3))[2,1],digits=5)` |`r round(coef(summary(ectoSPD3))[2,2],digits=5)` | `r round(confint(ectoSPD3)[2,],digits=5)` |
-| SPD | mean | 3 | `r round(coef(summary(ectoSPD3))[3,1],digits=5)` |`r round(coef(summary(ectoSPD3))[3,2],digits=5)` | `r round(confint(ectoSPD3)[3,],digits=5)` |
-| SPD | mean | 4 | `r round(coef(summary(ectoSPD3))[4,1],digits=5)` |`r round(coef(summary(ectoSPD3))[4,2],digits=5)` | `r round(confint(ectoSPD3)[4,],digits=5)` |
-| SPD | max | 2 | `r round(coef(summary(ectoSPD2))[2,1],digits=5)` |`r round(coef(summary(ectoSPD2))[2,2],digits=5)` | `r round(confint(ectoSPD2)[2,],digits=5)` |
-| SPD | max | 3 | `r round(coef(summary(ectoSPD2))[3,1],digits=5)` |`r round(coef(summary(ectoSPD2))[3,2],digits=5)` | `r round(confint(ectoSPD2)[3,],digits=5)` |
-| SPD | max | 4 | `r round(coef(summary(ectoSPD2))[4,1],digits=5)` |`r round(coef(summary(ectoSPD2))[4,2],digits=5)` | `r round(confint(ectoSPD2)[4,],digits=5)` |
-| SPD | CV | 2 | `r round(coef(summary(ectoSPD1))[2,1],digits=5)` |`r round(coef(summary(ectoSPD1))[2,2],digits=5)` | `r round(confint(ectoSPD1)[2,],digits=5)` |
-| SPD | CV | 3 | `r round(coef(summary(ectoSPD1))[3,1],digits=5)` |`r round(coef(summary(ectoSPD1))[3,2],digits=5)` | `r round(confint(ectoSPD1)[3,],digits=5)` |
-| SPD | CV | 4 | `r round(coef(summary(ectoSPD1))[4,1],digits=5)` |`r round(coef(summary(ectoSPD1))[4,2],digits=5)` | `r round(confint(ectoSPD1)[4,],digits=5)` |
+| degree | mean | 2 | `r round(coef(summary(ectoD3))[2,1],digits=8)` |`r round(coef(summary(ectoD3))[2,2],digits=8)` | `r round(confint(ectoD3)[2,],digits=8)` |
+| degree | mean | 3 | `r round(coef(summary(ectoD3))[3,1],digits=8)` |`r round(coef(summary(ectoD3))[3,2],digits=8)` | `r round(confint(ectoD3)[3,],digits=8)` |
+| degree | mean | 4 | `r round(coef(summary(ectoD3))[4,1],digits=8)` |`r round(coef(summary(ectoD3))[4,2],digits=8)` | `r round(confint(ectoD3)[4,],digits=8)` |
+| degree | max | 2 | `r round(coef(summary(ectoD2))[2,1],digits=8)` |`r round(coef(summary(ectoD2))[2,2],digits=8)` | `r round(confint(ectoD2)[2,],digits=8)` |
+| degree | max | 3 | `r round(coef(summary(ectoD2))[3,1],digits=8)` |`r round(coef(summary(ectoD2))[3,2],digits=8)` | `r round(confint(ectoD2)[3,],digits=8)` |
+| degree | max | 4 | `r round(coef(summary(ectoD2))[4,1],digits=8)` |`r round(coef(summary(ectoD2))[4,2],digits=8)` | `r round(confint(ectoD2)[4,],digits=8)` |
+| degree | CV | 2 | `r round(coef(summary(ectoD1))[2,1],digits=8)` |`r round(coef(summary(ectoD1))[2,2],digits=8)` | `r round(confint(ectoD1)[2,],digits=8)` |
+| degree | CV | 3 | `r round(coef(summary(ectoD1))[3,1],digits=8)` |`r round(coef(summary(ectoD1))[3,2],digits=8)` | `r round(confint(ectoD1)[3,],digits=8)` |
+| degree | CV | 4 | `r round(coef(summary(ectoD1))[4,1],digits=8)` |`r round(coef(summary(ectoD1))[4,2],digits=8)` | `r round(confint(ectoD1)[4,],digits=8)` |
+| G | mean | 2 | `r round(coef(summary(ectoG3))[2,1],digits=8)` |`r round(coef(summary(ectoG3))[2,2],digits=8)` | `r round(confint(ectoG3)[2,],digits=8)` |
+| G | mean | 3 | `r round(coef(summary(ectoG3))[3,1],digits=8)` |`r round(coef(summary(ectoG3))[3,2],digits=8)` | `r round(confint(ectoG3)[3,],digits=8)` |
+| G | mean | 4 | `r round(coef(summary(ectoG3))[4,1],digits=8)` |`r round(coef(summary(ectoG3))[4,2],digits=8)` | `r round(confint(ectoG3)[4,],digits=8)` |
+| G | max | 2 | `r round(coef(summary(ectoG2))[2,1],digits=8)` |`r round(coef(summary(ectoG2))[2,2],digits=8)` | `r round(confint(ectoG2)[2,],digits=8)` |
+| G | max | 3 | `r round(coef(summary(ectoG2))[3,1],digits=8)` |`r round(coef(summary(ectoG2))[3,2],digits=8)` | `r round(confint(ectoG2)[3,],digits=8)` |
+| G | max | 4 | `r round(coef(summary(ectoG2))[4,1],digits=8)` |`r round(coef(summary(ectoG2))[4,2],digits=8)` | `r round(confint(ectoG2)[4,],digits=8)` |
+| PD | mean | 2 | `r round(coef(summary(ectoPD3))[2,1],digits=8)` |`r round(coef(summary(ectoPD3))[2,2],digits=8)` | `r round(confint(ectoPD3)[2,],digits=8)` |
+| PD | mean | 3 | `r round(coef(summary(ectoPD3))[3,1],digits=8)` |`r round(coef(summary(ectoPD3))[3,2],digits=8)` | `r round(confint(ectoPD3)[3,],digits=8)` |
+| PD | mean | 4 | `r round(coef(summary(ectoPD3))[4,1],digits=8)` |`r round(coef(summary(ectoPD3))[4,2],digits=8)` | `r round(confint(ectoPD3)[4,],digits=8)` |
+| PD | max | 2 | `r round(coef(summary(ectoPD2))[2,1],digits=8)` |`r round(coef(summary(ectoPD2))[2,2],digits=8)` | `r round(confint(ectoPD2)[2,],digits=8)` |
+| PD | max | 3 | `r round(coef(summary(ectoPD2))[3,1],digits=8)` |`r round(coef(summary(ectoPD2))[3,2],digits=8)` | `r round(confint(ectoPD2)[3,],digits=8)` |
+| PD | max | 4 | `r round(coef(summary(ectoPD2))[4,1],digits=8)` |`r round(coef(summary(ectoPD2))[4,2],digits=8)` | `r round(confint(ectoPD2)[4,],digits=8)` |
+| PD | CV | 2 | `r round(coef(summary(ectoPD1))[2,1],digits=8)` |`r round(coef(summary(ectoPD1))[2,2],digits=8)` | `r round(confint(ectoPD1)[2,],digits=8)` |
+| PD | CV | 3 | `r round(coef(summary(ectoPD1))[3,1],digits=8)` |`r round(coef(summary(ectoPD1))[3,2],digits=8)` | `r round(confint(ectoPD1)[3,],digits=8)` |
+| PD | CV | 4 | `r round(coef(summary(ectoPD1))[4,1],digits=8)` |`r round(coef(summary(ectoPD1))[4,2],digits=8)` | `r round(confint(ectoPD1)[4,],digits=8)` |
+| SPD | mean | 2 | `r round(coef(summary(ectoSPD3))[2,1],digits=8)` |`r round(coef(summary(ectoSPD3))[2,2],digits=8)` | `r round(confint(ectoSPD3)[2,],digits=8)` |
+| SPD | mean | 3 | `r round(coef(summary(ectoSPD3))[3,1],digits=8)` |`r round(coef(summary(ectoSPD3))[3,2],digits=8)` | `r round(confint(ectoSPD3)[3,],digits=8)` |
+| SPD | mean | 4 | `r round(coef(summary(ectoSPD3))[4,1],digits=8)` |`r round(coef(summary(ectoSPD3))[4,2],digits=8)` | `r round(confint(ectoSPD3)[4,],digits=8)` |
+| SPD | max | 2 | `r round(coef(summary(ectoSPD2))[2,1],digits=8)` |`r round(coef(summary(ectoSPD2))[2,2],digits=8)` | `r round(confint(ectoSPD2)[2,],digits=8)` |
+| SPD | max | 3 | `r round(coef(summary(ectoSPD2))[3,1],digits=8)` |`r round(coef(summary(ectoSPD2))[3,2],digits=8)` | `r round(confint(ectoSPD2)[3,],digits=8)` |
+| SPD | max | 4 | `r round(coef(summary(ectoSPD2))[4,1],digits=8)` |`r round(coef(summary(ectoSPD2))[4,2],digits=8)` | `r round(confint(ectoSPD2)[4,],digits=8)` |
+| SPD | CV | 2 | `r round(coef(summary(ectoSPD1))[2,1],digits=8)` |`r round(coef(summary(ectoSPD1))[2,2],digits=8)` | `r round(confint(ectoSPD1)[2,],digits=8)` |
+| SPD | CV | 3 | `r round(coef(summary(ectoSPD1))[3,1],digits=8)` |`r round(coef(summary(ectoSPD1))[3,2],digits=8)` | `r round(confint(ectoSPD1)[3,],digits=8)` |
+| SPD | CV | 4 | `r round(coef(summary(ectoSPD1))[4,1],digits=8)` |`r round(coef(summary(ectoSPD1))[4,2],digits=8)` | `r round(confint(ectoSPD1)[4,],digits=8)` |
 
 
 
@@ -457,10 +457,10 @@ geoSPD2 <- lm(data=hp.geoDirect,SPD ~ GeoGroup)
 
 | Metric | Model Coefficient (ref="warm") | Std Error | Conf Int |
 |--------|-----------|-------|------|
-| degree |  `r round(coef(summary(geoD2))[2,1],digits=5)` |`r round(coef(summary(geoD2))[2,2],digits=5)` | `r round(confint(geoD2)[2,],digits=5)` | 
-| G |  `r round(coef(summary(geoG2))[2,1],digits=5)` |`r round(coef(summary(geoG2))[2,2],digits=5)` | `r round(confint(geoG2)[2,],digits=5)` |
-| PD |  `r round(coef(summary(geoPD2))[2,1],digits=5)` |`r round(coef(summary(geoPD2))[2,2],digits=5)` | `r round(confint(geoPD2)[2,],digits=5)` |
-| SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=5)` |`r round(coef(summary(geoSPD2))[2,2],digits=5)` | `r round(confint(geoSPD2)[2,],digits=5)` |
+| degree |  `r round(coef(summary(geoD2))[2,1],digits=8)` |`r round(coef(summary(geoD2))[2,2],digits=8)` | `r round(confint(geoD2)[2,],digits=8)` | 
+| G |  `r round(coef(summary(geoG2))[2,1],digits=8)` |`r round(coef(summary(geoG2))[2,2],digits=8)` | `r round(confint(geoG2)[2,],digits=8)` |
+| PD |  `r round(coef(summary(geoPD2))[2,1],digits=8)` |`r round(coef(summary(geoPD2))[2,2],digits=8)` | `r round(confint(geoPD2)[2,],digits=8)` |
+| SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=8)` |`r round(coef(summary(geoSPD2))[2,2],digits=8)` | `r round(confint(geoSPD2)[2,],digits=8)` |
 
 ## Trophic Transmission
 Amy  H's model predicts that parasites with trophic transmission are less likely to be generalists, but we see the opposite pattern in this data.
@@ -484,7 +484,7 @@ tropSPD <- lm(data=hp.trop,SPD ~ Trophic)
 
 | Metric | Model Coefficient (ref="No") | Std Error |
 |--------|-----------|-------|
-| degree |  `r round(coef(summary(tropD))[2,1],digits=5)` |`r round(coef(summary(tropD))[2,2],digits=5)` |
-| G |  `r round(coef(summary(tropG))[2,1],digits=5)` |`r round(coef(summary(tropG))[2,2],digits=5)` |
-| PD |  `r round(coef(summary(tropPD))[2,1],digits=5)` |`r round(coef(summary(tropPD))[2,2],digits=5)` |
-| SPD |  `r round(coef(summary(tropSPD))[2,1],digits=5)` |`r round(coef(summary(tropSPD))[2,2],digits=5)` |
+| degree |  $`r round(coef(summary(tropD))[2,1],digits=8)`$ |`r round(coef(summary(tropD))[2,2],digits=8)` |
+| G |  `r round(coef(summary(tropG))[2,1],digits=8)` |`r round(coef(summary(tropG))[2,2],digits=8)` |
+| PD |  `r round(coef(summary(tropPD))[2,1],digits=8)` |`r round(coef(summary(tropPD))[2,2],digits=8)` |
+| SPD |  `r round(coef(summary(tropSPD))[2,1],digits=8)` |`r round(coef(summary(tropSPD))[2,2],digits=8)` |
