@@ -186,6 +186,7 @@ The generalism metrics each come from very different distributions, based on thi
 ```{r endoecto,echo=FALSE,warning=FALSE}
 load("~/dat/generalismtheory/gen.noGEO.RData")
 names(generalism)[17] <- c("degree")
+generalism$SPD[generalism$G==0] <- 0
 
 hp1 <- generalism %>% filter(Trophic=="No" & Complex=="No")
 hp1long <- hp1 %>% gather("index","value",14:17)
@@ -213,6 +214,7 @@ In the plots, many of the relationships appear to be non-linear, but this is due
 ```{r maxl,echo=FALSE,warning=FALSE}
 load("~/dat/generalismtheory/gen.noGEO.RData")
 names(generalism)[17] <- c("degree")
+generalism$SPD[generalism$G==0] <- 0
 
 hp.endo <- generalism %>% filter(Endoparasite =="Endo")
 hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No")
@@ -310,19 +312,22 @@ hp.ecto2 <- hp.ecto %>% filter(Trophic=="Yes" | Complex=="No")
 
 # divide into quartiles
 summean <- summary(hp.ecto2$meanMaxL)
-hp.ecto2$mean.lcat <- 1
+hp.ecto2$mean.lcat <- NA
+hp.ecto2$mean.lcat[hp.ecto2$meanMaxL <= summean["1st Qu."]] <- 1
 hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["1st Qu."]] <- 2
 hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["Median"]] <- 3
 hp.ecto2$mean.lcat[hp.ecto2$meanMaxL > summean["3rd Qu."]] <- 4
 
 summax <- summary(hp.ecto2$maxMaxL)
-hp.ecto2$max.lcat <- 1
+hp.ecto2$max.lcat <- NA
+hp.ecto2$max.lcat[hp.ecto2$maxMaxL <= summax["1st Qu."]] <- 1
 hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["1st Qu."]] <- 2
 hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["Median"]] <- 3
 hp.ecto2$max.lcat[hp.ecto2$maxMaxL > summax["3rd Qu."]] <- 4
 
 sumcv <- summary(hp.ecto2$cvmaxL)
-hp.ecto2$cv.lcat <- 1
+hp.ecto2$cv.lcat <- NA
+hp.ecto2$cv.lcat[hp.ecto2$cvmaxL <= sumcv["1st Qu."]] <- 1
 hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["1st Qu."]] <- 2
 hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["Median"]] <- 3
 hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["3rd Qu."]] <- 4
@@ -330,6 +335,7 @@ hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["3rd Qu."]] <- 4
 ectoDlong <- hp.ecto2 %>% gather("index","value",14:17)
 ectoDlong1 <- ectoDlong %>% gather("length_cat_measure","length_cat",c(14:16))
 ectoDlong2 <- ectoDlong1 %>% gather("length_measure","length",c(9,11,13))
+
 
 ectoDlong2$length_measure <- as.factor(ectoDlong2$length_measure)
 levels(ectoDlong2$length_measure) <- c("CV host length", "max host length", "mean host length")
@@ -340,6 +346,9 @@ ectoDlong2 %>%  ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw(
 ectoDlong2 %>% filter(index!="G") %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
 #####
 
+hp.ecto2 %>%  ggplot(data=.,aes(x=cvmaxL,fill=as.factor(cv.lcat))) + geom_histogram(bins=40) + theme_bw() #+ facet_grid(~length_measure,scales="free")
+hp.ecto2 %>%  ggplot(data=.,aes(x=meanMaxL,fill=as.factor(mean.lcat))) + geom_histogram(bins=40) + theme_bw() #+ facet_grid(~length_measure,scales="free")
+hp.ecto2 %>%  ggplot(data=.,aes(x=maxMaxL,fill=as.factor(max.lcat))) + geom_histogram(bins=40) + theme_bw() #+ facet_grid(~length_measure,scales="free")
 
 
 
@@ -416,6 +425,7 @@ load("~/dat/generalismtheory/gen.GEO.RData")
 generalismGEO <- data.frame(generalism) %>% separate(new_pname,into=c("pname","GEO"),sep="_")
 names(generalismGEO)[18] <- "degree"
 generalismGEO$GEO[generalismGEO$GEO=="NA"] <- NA
+generalism$SPD[generalism$G==0] <- 0
 
 hp.geoDirect <- generalismGEO %>% filter(Trophic=="Yes" | Complex=="No")
 hp.geoDirect$GeoGroup <- NA
