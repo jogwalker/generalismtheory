@@ -187,9 +187,12 @@ The generalism metrics each come from very different distributions, based on thi
 load("~/dat/generalismtheory/gen.noGEO.RData")
 names(generalism)[17] <- c("degree")
 generalism$SPD[generalism$G==0] <- 0
+sps <- read.table("~/dat/generalismtheory/sps.txt",header=T)
+generalism$pname <- gsub(" ","_",generalism$new_pname)
+generalism2 <- left_join(generalism,sps,by="pname")
 
-hp1 <- generalism %>% filter(Trophic=="No" & Complex=="No")
-hp1long <- hp1 %>% gather("index","value",14:17)
+hp1 <- generalism2 %>% filter(Trophic=="No" & Complex=="No")
+hp1long <- hp1 %>% gather("index","value",c(14:17,24))
 hp1long %>% ggplot(data=.,aes(x=Endoparasite,y=value)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + ylab("index value") 
 
 infD2 <- glm.nb(data=hp1,degree ~ Endoparasite) 
@@ -197,9 +200,9 @@ infG2 <- glm(data=hp1,G ~ Endoparasite,family="binomial")
 infPD2 <- lm(data=hp1,log(PD+0.01) ~ Endoparasite)
 infSPD2 <- lm(data=hp1,SPD ~ Endoparasite) 
 
-with(hp1,table(Endoparasite,Complex))
-with(generalism,table(Endoparasite,Complex))
-with(generalism,table(Endoparasite,Trophic))
+# with(hp1,table(Endoparasite,Complex))
+# with(generalism,table(Endoparasite,Complex))
+# with(generalism,table(Endoparasite,Trophic))
 
 ```
 
@@ -212,11 +215,11 @@ In the plots, many of the relationships appear to be non-linear, but this is due
 
 
 ```{r maxl,echo=FALSE,warning=FALSE}
-load("~/dat/generalismtheory/gen.noGEO.RData")
-names(generalism)[17] <- c("degree")
-generalism$SPD[generalism$G==0] <- 0
+# load("~/dat/generalismtheory/gen.noGEO.RData")
+# names(generalism)[17] <- c("degree")
+# generalism$SPD[generalism$G==0] <- 0
 
-hp.endo <- generalism %>% filter(Endoparasite =="Endo")
+hp.endo <- generalism2 %>% filter(Endoparasite =="Endo")
 hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No")
 
 # # divide into quartiles
@@ -244,7 +247,7 @@ hp.endo2 <- hp.endo %>% filter(Trophic=="Yes" | Complex=="No")
 # hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["Median"]] <- 3
 # hp.endo2$cv.lcat[hp.endo2$cvmaxL > sumcv["3rd Qu."]] <- 4
 
-endoDlong <- hp.endo2 %>% gather("index","value",c(14:17))
+endoDlong <- hp.endo2 %>% gather("index","value",c(14:17,24))
 #endoDlong1 <- endoDlong %>% gather("length_cat_measure","length_cat",c(13:16))
 endoDlong2 <- endoDlong %>% gather("length_measure","length",c(9,11,13))
 
@@ -307,7 +310,7 @@ Clay's model predicts that for ectoparasites, there should be few generalist par
 Based on the plots, this seems to be the case for degree, PD, and PS, but not so clear for SPD. However, I categorized by quartiles and due to the skewed distribution and long tail, in some cases relatively low values for length are in the 4th quartile, for example for max length.  
 
 ```{r ecto, echo=FALSE,warning=FALSE}
-hp.ecto <- generalism %>% filter(Endoparasite =="Ecto")
+hp.ecto <- generalism2 %>% filter(Endoparasite =="Ecto")
 hp.ecto2 <- hp.ecto %>% filter(Trophic=="Yes" | Complex=="No") 
 
 # divide into quartiles
@@ -333,7 +336,7 @@ hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["Median"]] <- 3
 hp.ecto2$cv.lcat[hp.ecto2$cvmaxL > sumcv["3rd Qu."]] <- 4
 
 ectoDlong <- hp.ecto2 %>% gather("index","value",14:17)
-ectoDlong1 <- ectoDlong %>% gather("length_cat_measure","length_cat",c(14:16))
+ectoDlong1 <- ectoDlong %>% gather("length_cat_measure","length_cat",c(23:25))
 ectoDlong2 <- ectoDlong1 %>% gather("length_measure","length",c(9,11,13))
 
 
@@ -422,19 +425,22 @@ Clay's model predicts that generalists are more likely in cooler temperatures. O
 ```{r geo, echo=FALSE,warning=FALSE}
 # Use alternative index calculated with GEO
 load("~/dat/generalismtheory/gen.GEO.RData")
-generalismGEO <- data.frame(generalism) %>% separate(new_pname,into=c("pname","GEO"),sep="_")
-names(generalismGEO)[18] <- "degree"
+generalismGEO <- data.frame(generalism) %>% separate(new_pname,into=c("pname","GEO"),sep="_",remove=FALSE)
+generalismGEO$new_pname <- gsub(" ","_",generalismGEO$new_pname)
+names(generalismGEO)[19] <- "degree"
 generalismGEO$GEO[generalismGEO$GEO=="NA"] <- NA
-generalism$SPD[generalism$G==0] <- 0
+generalismGEO$SPD[generalismGEO$G==0] <- 0
+sps.geo <- read.table("~/dat/generalismtheory/sps_geo.txt",header=T)
+generalismGEO2 <- left_join(generalismGEO,sps.geo,by=c("new_pname"="pname"))
 
-hp.geoDirect <- generalismGEO %>% filter(Trophic=="Yes" | Complex=="No")
+hp.geoDirect <- generalismGEO2 %>% filter(Trophic=="Yes" | Complex=="No")
 hp.geoDirect$GeoGroup <- NA
 hp.geoDirect$GeoGroup[hp.geoDirect$GEO %in% c("AFR","AUS","IND","NEO")] <- "warm"
 hp.geoDirect$GeoGroup[hp.geoDirect$GEO %in% c("ANT","NEA","PAL")] <- "cool"
 hp.geoDirect$GeoGroup = factor(hp.geoDirect$GeoGroup,levels(factor(hp.geoDirect$GeoGroup))[c(2,1)])
 hp.geoDirect$GEO = factor(hp.geoDirect$GEO,levels(factor(hp.geoDirect$GEO))[c(1,3,4,6,2,5,7)])
 
-geoDlong <- hp.geoDirect %>% gather("index","value",15:18)
+geoDlong <- hp.geoDirect %>% gather("index","value",c(16:19,25))
 geoDlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
 geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
 
