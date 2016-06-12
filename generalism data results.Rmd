@@ -199,6 +199,8 @@ infD2 <- glm.nb(data=hp1,degree ~ Endoparasite)
 infG2 <- glm(data=hp1,G ~ Endoparasite,family="binomial") 
 infPD2 <- lm(data=hp1,log(PD+0.01) ~ Endoparasite)
 infSPD2 <- lm(data=hp1,SPD ~ Endoparasite) 
+infSESPD <- lm(data=hp1,pd.obs.z ~ Endoparasite)
+# not using these/not showing
 
 # with(hp1,table(Endoparasite,Complex))
 # with(generalism,table(Endoparasite,Complex))
@@ -265,6 +267,7 @@ endoDlong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom
 
 endoDlong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm")
 
+endoDlong2 %>% filter(index=="pd.obs.z") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SES.PD") + stat_smooth(method="lm")
 
 
 # endoDlong2 %>% ggplot(data=.,aes(x=as.factor(length_cat),y=value)) + geom_boxplot() + theme_bw() + facet_grid(index~length_cat_measure,scales="free") + ylab("index value")
@@ -287,6 +290,9 @@ endoSPD1 <- lm(data=hp.endo2,SPD ~ cvmaxL) # positive
 endoSPD2 <- lm(data=hp.endo2,SPD ~ maxMaxL) # no relationship
 endoSPD3 <- lm(data=hp.endo2,SPD ~ meanMaxL) # negative
 
+endoSESPD1 <- lm(data=hp.endo2,pd.obs.z ~ cvmaxL) # positive
+endoSESPD2 <- lm(data=hp.endo2,pd.obs.z ~ maxMaxL) # negative
+endoSESPD3 <- lm(data=hp.endo2,pd.obs.z ~ meanMaxL) # negative
 ```
 
 | Metric | Length Measure | Model Coefficient | Std Error | Conf Int |
@@ -302,6 +308,9 @@ endoSPD3 <- lm(data=hp.endo2,SPD ~ meanMaxL) # negative
 | SPD | mean | `r round(coef(summary(endoSPD3))[2,1],digits=8)` |`r round(coef(summary(endoSPD3))[2,2],digits=8)` | `r round(confint(endoSPD3)[2,],digits=8)` |
 | SPD | max | `r round(coef(summary(endoSPD2))[2,1],digits=8)` |`r round(coef(summary(endoSPD2))[2,2],digits=8)` | `r round(confint(endoSPD2)[2,],digits=8)` |
 | SPD | CV | `r round(coef(summary(endoSPD1))[2,1],digits=8)` |`r round(coef(summary(endoSPD1))[2,2],digits=8)` | `r round(confint(endoSPD1)[2,],digits=8)` |
+| SESPD | mean | `r round(coef(summary(endoSESPD3))[2,1],digits=8)` |`r round(coef(summary(endoSESPD3))[2,2],digits=8)` | `r round(confint(endoSESPD3)[2,],digits=8)` |
+| SESPD | max | `r round(coef(summary(endoSESPD2))[2,1],digits=8)` |`r round(coef(summary(endoSESPD2))[2,2],digits=8)` | `r round(confint(endoSESPD2)[2,],digits=8)` |
+| SESPD | CV | `r round(coef(summary(endoSESPD1))[2,1],digits=8)` |`r round(coef(summary(endoSESPD1))[2,2],digits=8)` | `r round(confint(endoSESPD1)[2,],digits=8)` |
 
 
 ## Ectoparasites & Host Body Size
@@ -376,6 +385,9 @@ ectoSPD1 <- lm(data=hp.ecto2,SPD ~ as.factor(cv.lcat))
 ectoSPD2 <- lm(data=hp.ecto2,SPD ~ as.factor(max.lcat)) 
 ectoSPD3 <- lm(data=hp.ecto2,SPD ~ as.factor(mean.lcat)) 
 
+ectoSESPD1 <- lm(data=hp.ecto2,pd.obs.z ~ as.factor(cv.lcat)) 
+ectoSESPD2 <- lm(data=hp.ecto2,pd.obs.z ~ as.factor(max.lcat)) 
+ectoSESPD3 <- lm(data=hp.ecto2,pd.obs.z ~ as.factor(mean.lcat)) 
 
 ```
 
@@ -414,7 +426,15 @@ ectoSPD3 <- lm(data=hp.ecto2,SPD ~ as.factor(mean.lcat))
 | SPD | CV | 2 | `r round(coef(summary(ectoSPD1))[2,1],digits=8)` |`r round(coef(summary(ectoSPD1))[2,2],digits=8)` | `r round(confint(ectoSPD1)[2,],digits=8)` |
 | SPD | CV | 3 | `r round(coef(summary(ectoSPD1))[3,1],digits=8)` |`r round(coef(summary(ectoSPD1))[3,2],digits=8)` | `r round(confint(ectoSPD1)[3,],digits=8)` |
 | SPD | CV | 4 | `r round(coef(summary(ectoSPD1))[4,1],digits=8)` |`r round(coef(summary(ectoSPD1))[4,2],digits=8)` | `r round(confint(ectoSPD1)[4,],digits=8)` |
-
+| SESPD | mean | 2 | `r round(coef(summary(ectoSESPD3))[2,1],digits=8)` |`r round(coef(summary(ectoSESPD3))[2,2],digits=8)` | `r round(confint(ectoSESPD3)[2,],digits=8)` |
+| SESPD | mean | 3 | `r round(coef(summary(ectoSESPD3))[3,1],digits=8)` |`r round(coef(summary(ectoSESPD3))[3,2],digits=8)` | `r round(confint(ectoSESPD3)[3,],digits=8)` |
+| SESPD | mean | 4 | `r round(coef(summary(ectoSESPD3))[4,1],digits=8)` |`r round(coef(summary(ectoSESPD3))[4,2],digits=8)` | `r round(confint(ectoSESPD3)[4,],digits=8)` |
+| SESPD | max | 2 | `r round(coef(summary(ectoSESPD2))[2,1],digits=8)` |`r round(coef(summary(ectoSESPD2))[2,2],digits=8)` | `r round(confint(ectoSESPD2)[2,],digits=8)` |
+| SESPD | max | 3 | `r round(coef(summary(ectoSESPD2))[3,1],digits=8)` |`r round(coef(summary(ectoSESPD2))[3,2],digits=8)` | `r round(confint(ectoSESPD2)[3,],digits=8)` |
+| SESPD | max | 4 | `r round(coef(summary(ectoSESPD2))[4,1],digits=8)` |`r round(coef(summary(ectoSESPD2))[4,2],digits=8)` | `r round(confint(ectoSESPD2)[4,],digits=8)` |
+| SESPD | CV | 2 | `r round(coef(summary(ectoSESPD1))[2,1],digits=8)` |`r round(coef(summary(ectoSESPD1))[2,2],digits=8)` | `r round(confint(ectoSESPD1)[2,],digits=8)` |
+| SESPD | CV | 3 | `r round(coef(summary(ectoSESPD1))[3,1],digits=8)` |`r round(coef(summary(ectoSESPD1))[3,2],digits=8)` | `r round(confint(ectoSESPD1)[3,],digits=8)` |
+| SESPD | CV | 4 | `r round(coef(summary(ectoSESPD1))[4,1],digits=8)` |`r round(coef(summary(ectoSESPD1))[4,2],digits=8)` | `r round(confint(ectoSESPD1)[4,],digits=8)` |
 
 
 
@@ -459,6 +479,7 @@ geoD2 <- glm.nb(data=hp.geoDirect,degree ~ GeoGroup)
 geoG2 <- glm(data=hp.geoDirect,G ~ GeoGroup,family="binomial") 
 geoPD2 <- lm(data=hp.geoDirect,log(PD+0.01) ~ GeoGroup)
 geoSPD2 <- lm(data=hp.geoDirect,SPD ~ GeoGroup) 
+geoSESPD2 <- lm(data=hp.geoDirect,pd.obs.z ~ GeoGroup) 
 ```
 
 | Metric | Model Coefficient (ref="warm") | Std Error | Conf Int |
@@ -467,7 +488,10 @@ geoSPD2 <- lm(data=hp.geoDirect,SPD ~ GeoGroup)
 | G |  `r round(coef(summary(geoG2))[2,1],digits=8)` |`r round(coef(summary(geoG2))[2,2],digits=8)` | `r round(confint(geoG2)[2,],digits=8)` |
 | PD |  `r round(coef(summary(geoPD2))[2,1],digits=8)` |`r round(coef(summary(geoPD2))[2,2],digits=8)` | `r round(confint(geoPD2)[2,],digits=8)` |
 | SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=8)` |`r round(coef(summary(geoSPD2))[2,2],digits=8)` | `r round(confint(geoSPD2)[2,],digits=8)` |
+| SESPD |  `r round(coef(summary(geoSESPD2))[2,1],digits=8)` |`r round(coef(summary(geoSESPD2))[2,2],digits=8)` | `r round(confint(geoSESPD2)[2,],digits=8)` |
 
+
+# Not including this:
 ## Trophic Transmission
 Amy  H's model predicts that parasites with trophic transmission are less likely to be generalists, but we see the opposite pattern in this data.
 
