@@ -520,12 +520,12 @@ tropSPD <- lm(data=hp.trop,SPD ~ Trophic)
 
 
 
-# New plots 18 July 2016: Combine endo and ecto and look at difference between direct and trophic
+# New plots 19 July 2016: Combine endo and ecto and look at difference between direct and trophic
 ## Direct Life Cycles and body size metrics
 The first plot where all the metrics are together has a loess smoothed line, the others have model fit lines that match the statistical analysis. 
 
 ```{r newplots,echo=FALSE,warning=FALSE}
-hp.direct <- generalism2 %>% filter(Complex == "No")
+hp.direct <- generalism2 %>% filter(Complex == "No" & Trophic=="No")
 hp.trophic <- generalism2 %>% filter(Trophic == "Yes")
 directlong <- hp.direct %>% gather("index","value",c(14:17,24))
 directlong2 <- directlong %>%  gather("length_measure","length",c(9,11,13))
@@ -534,20 +534,53 @@ trophiclong2 <- trophiclong %>%  gather("length_measure","length",c(9,11,13))
 
 directlong2$length_measure <- as.factor(directlong2$length_measure)
 levels(directlong2$length_measure) <- c("CV host length", "max host length", "mean host length")
-directlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
-
-directlong2 %>% filter(index=="degree") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("degree") + stat_smooth(method="glm.nb")
-
-directlong2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial"))
-
-directlong2$log <- log(directlong2$value+0.01)
-directlong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("log PD") + stat_smooth(method="lm") 
-
-directlong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm")
-
-directlong2 %>% filter(index=="pd.obs.z") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SES.PD") + stat_smooth(method="lm")
+directlong2$length_measure <- relevel(directlong2$length_measure,ref="mean host length")
+directlong2$length_measure <- relevel(directlong2$length_measure,ref="max host length")
+# directlong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
 
 
+plotd <- directlong2 %>% filter(index=="degree") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("degree") + stat_smooth(method="glm.nb") + xlab(NULL)
+
+
+# don't need this... just use geom_count()
+# # bin results by length
+# bin <- function(val) {
+#   xx <- data.frame(x=seq(5,795,by=10),min=seq(0,790,by=10), max=seq(10,800,by=10))
+#   if(!is.na(val)) {
+#   b <- xx$x[(val > xx$min & val <= xx$max)]
+#   return(b)
+#   }
+#   else {return(NA)}
+# }
+# 
+# newg <- directlong2 %>% filter(index=="G",length_measure!="CV host length") 
+# newg <- newg[,c(4,5,19:22)]
+# newg$lengthbin <- unlist(lapply(newg$length,bin))
+# newg2 <- newg %>% group_by(Complex,Trophic,index,value,length_measure, lengthbin) %>% summarize(z=n())
+#   
+# plotg <- newg2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=lengthbin,y=value,size=z)) + geom_point() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial"))
+
+plotg <- directlong2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=length,y=value)) + geom_count()  + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial")) + theme(legend.position="right") + xlab(NULL) #+ geom_density_2d() + geom_count() + geom_bin2d()
+
+# directlong2$log <- log(directlong2$value+0.01)
+# directlong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("log PD") + stat_smooth(method="lm") 
+
+plotspd <- directlong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm") + xlab(NULL)
+
+plotsespd <- directlong2 %>% filter(index=="pd.obs.z") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SES.PD") + stat_smooth(method="lm") + xlab("Length metric")
+
+# grid with degree, G, SPD, and SES-PD
+library(gridExtra)
+lay=rbind(c(1,1,1,1,1,1),c(2,2,2,2,2,NA),c(3,3,3,3,3,3),c(4,4,4,4,4,4))
+grid.arrange(plotd,plotg,plotspd,plotsespd,layout_matrix=lay)
+
+jpeg("~/dat/generalismtheory/direct1.jpeg")
+grid.arrange(plotd,plotg,plotspd,plotsespd,layout_matrix=lay)
+dev.off()
+
+pdf("~/dat/generalismtheory/direct1.pdf")
+grid.arrange(plotd,plotg,plotspd,plotsespd,layout_matrix=lay)
+dev.off()
 
 ```
 
@@ -560,9 +593,9 @@ directD3 <- glm.nb(data=hp.direct,degree ~ meanMaxL) # negative
 directG2 <- glm(data=hp.direct,G ~ maxMaxL,family="binomial") # positive
 directG3 <- glm(data=hp.direct,G ~ meanMaxL,family="binomial") # negative
 
-directPD1 <- lm(data=hp.direct,log(PD+0.01) ~ cvmaxL) # positive
-directPD2 <- lm(data=hp.direct,log(PD+0.01) ~ maxMaxL) # positive
-directPD3 <- lm(data=hp.direct,log(PD+0.01) ~ meanMaxL) # negative
+# directPD1 <- lm(data=hp.direct,log(PD+0.01) ~ cvmaxL) # positive
+# directPD2 <- lm(data=hp.direct,log(PD+0.01) ~ maxMaxL) # positive
+# directPD3 <- lm(data=hp.direct,log(PD+0.01) ~ meanMaxL) # negative
 
 directSPD1 <- lm(data=hp.direct,SPD ~ cvmaxL) # positive
 directSPD2 <- lm(data=hp.direct,SPD ~ maxMaxL) # no relationship
@@ -580,9 +613,6 @@ directSESPD3 <- lm(data=hp.direct,pd.obs.z ~ meanMaxL) # negative
 | degree | CV | `r round(coef(summary(directD1))[2,1],digits=8)` |`r round(coef(summary(directD1))[2,2],digits=8)` | `r round(confint(directD1)[2,],digits=8)` | `r round(coef(summary(directD1))[2,3],digits=8)` |
 | G | mean | `r round(coef(summary(directG3))[2,1],digits=8)` |`r round(coef(summary(directG3))[2,2],digits=8)` | `r round(confint(directG3)[2,],digits=8)` | `r round(coef(summary(directG3))[2,3],digits=8)` |
 | G | max | `r round(coef(summary(directG2))[2,1],digits=8)` |`r round(coef(summary(directG2))[2,2],digits=8)` | `r round(confint(directG2)[2,],digits=8)` | `r round(coef(summary(directG2))[2,3],digits=8)` |
-| PD | mean | `r round(coef(summary(directPD3))[2,1],digits=8)` |`r round(coef(summary(directPD3))[2,2],digits=8)` | `r round(confint(directPD3)[2,],digits=8)` | `r round(coef(summary(directPD3))[2,3],digits=8)` |
-| PD | max | `r round(coef(summary(directPD2))[2,1],digits=8)` |`r round(coef(summary(directPD2))[2,2],digits=8)` | `r round(confint(directPD2)[2,],digits=8)` | `r round(coef(summary(directPD2))[2,3],digits=8)` |
-| PD | CV | `r round(coef(summary(directPD1))[2,1],digits=8)` |`r round(coef(summary(directPD1))[2,2],digits=8)` | `r round(confint(directPD1)[2,],digits=8)` | `r round(coef(summary(directPD1))[2,3],digits=8)` |
 | SPD | mean | `r round(coef(summary(directSPD3))[2,1],digits=8)` |`r round(coef(summary(directSPD3))[2,2],digits=8)` | `r round(confint(directSPD3)[2,],digits=8)` | `r round(coef(summary(directSPD3))[2,3],digits=8)` |
 | SPD | max | `r round(coef(summary(directSPD2))[2,1],digits=8)` |`r round(coef(summary(directSPD2))[2,2],digits=8)` | `r round(confint(directSPD2)[2,],digits=8)` | `r round(coef(summary(directSPD2))[2,3],digits=8)` |
 | SPD | CV | `r round(coef(summary(directSPD1))[2,1],digits=8)` |`r round(coef(summary(directSPD1))[2,2],digits=8)` | `r round(confint(directSPD1)[2,],digits=8)` | `r round(coef(summary(directSPD1))[2,3],digits=8)` |
@@ -597,20 +627,30 @@ The first plot where all the metrics are together has a loess smoothed line, the
 ```{r newplots2,echo=FALSE,warning=FALSE}
 trophiclong2$length_measure <- as.factor(trophiclong2$length_measure)
 levels(trophiclong2$length_measure) <- c("CV host length", "max host length", "mean host length")
-trophiclong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
+trophiclong2$length_measure <- relevel(trophiclong2$length_measure,ref="mean host length")
+trophiclong2$length_measure <- relevel(trophiclong2$length_measure,ref="max host length")
+# trophiclong2 %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(index~length_measure,scales="free") + ylab("index value") + geom_smooth(method="loess")
 
-trophiclong2 %>% filter(index=="degree") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("degree") + stat_smooth(method="glm.nb")
+plotdt <- trophiclong2 %>% filter(index=="degree") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("degree") + stat_smooth(method="glm.nb") +xlab(NULL)
 
-trophiclong2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial"))
+plotgt <- trophiclong2 %>% filter(index=="G",length_measure!="CV host length") %>% ggplot(data=.,aes(x=length,y=value)) + geom_count() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("G") + stat_smooth(method="glm", method.args = list(family = "binomial")) + xlab(NULL)
 
-trophiclong2$log <- log(trophiclong2$value+0.01)
-trophiclong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("log PD") + stat_smooth(method="lm") 
+# trophiclong2$log <- log(trophiclong2$value+0.01)
+# trophiclong2 %>% filter(index=="PD") %>% ggplot(data=.,aes(x=length,y=log)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("log PD") + stat_smooth(method="lm") 
 
-trophiclong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm")
+plotspdt <- trophiclong2 %>% filter(index=="SPD") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SPD") + stat_smooth(method="lm") + xlab(NULL)
 
-trophiclong2 %>% filter(index=="pd.obs.z") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SES.PD") + stat_smooth(method="lm")
+plotsespdt <- trophiclong2 %>% filter(index=="pd.obs.z") %>% ggplot(data=.,aes(x=length,y=value)) + geom_jitter() + theme_bw() + facet_grid(~length_measure,scales="free") + ylab("SES.PD") + stat_smooth(method="lm") + xlab("Length metric")
 
+grid.arrange(plotdt,plotgt,plotspdt,plotsespdt,layout_matrix=lay)
 
+jpeg("~/dat/generalismtheory/trophic1.jpeg")
+grid.arrange(plotdt,plotgt,plotspdt,plotsespdt,layout_matrix=lay)
+dev.off()
+
+pdf("~/dat/generalismtheory/trophic1.pdf")
+grid.arrange(plotdt,plotgt,plotspdt,plotsespdt,layout_matrix=lay)
+dev.off()
 
 ```
 
@@ -623,9 +663,9 @@ trophicD3 <- glm.nb(data=hp.trophic,degree ~ meanMaxL) # negative
 trophicG2 <- glm(data=hp.trophic,G ~ maxMaxL,family="binomial") # positive
 trophicG3 <- glm(data=hp.trophic,G ~ meanMaxL,family="binomial") # negative
 
-trophicPD1 <- lm(data=hp.trophic,log(PD+0.01) ~ cvmaxL) # positive
-trophicPD2 <- lm(data=hp.trophic,log(PD+0.01) ~ maxMaxL) # positive
-trophicPD3 <- lm(data=hp.trophic,log(PD+0.01) ~ meanMaxL) # negative
+# trophicPD1 <- lm(data=hp.trophic,log(PD+0.01) ~ cvmaxL) # positive
+# trophicPD2 <- lm(data=hp.trophic,log(PD+0.01) ~ maxMaxL) # positive
+# trophicPD3 <- lm(data=hp.trophic,log(PD+0.01) ~ meanMaxL) # negative
 
 trophicSPD1 <- lm(data=hp.trophic,SPD ~ cvmaxL) # positive
 trophicSPD2 <- lm(data=hp.trophic,SPD ~ maxMaxL) # no relationship
@@ -643,9 +683,6 @@ trophicSESPD3 <- lm(data=hp.trophic,pd.obs.z ~ meanMaxL) # negative
 | degree | CV | `r round(coef(summary(trophicD1))[2,1],digits=8)` |`r round(coef(summary(trophicD1))[2,2],digits=8)` | `r round(confint(trophicD1)[2,],digits=8)` | `r round(coef(summary(trophicD1))[2,3],digits=8)` |
 | G | mean | `r round(coef(summary(trophicG3))[2,1],digits=8)` |`r round(coef(summary(trophicG3))[2,2],digits=8)` | `r round(confint(trophicG3)[2,],digits=8)` | `r round(coef(summary(trophicG3))[2,3],digits=8)` |
 | G | max | `r round(coef(summary(trophicG2))[2,1],digits=8)` |`r round(coef(summary(trophicG2))[2,2],digits=8)` | `r round(confint(trophicG2)[2,],digits=8)` | `r round(coef(summary(trophicG2))[2,3],digits=8)` |
-| PD | mean | `r round(coef(summary(trophicPD3))[2,1],digits=8)` |`r round(coef(summary(trophicPD3))[2,2],digits=8)` | `r round(confint(trophicPD3)[2,],digits=8)` | `r round(coef(summary(trophicPD3))[2,3],digits=8)` |
-| PD | max | `r round(coef(summary(trophicPD2))[2,1],digits=8)` |`r round(coef(summary(trophicPD2))[2,2],digits=8)` | `r round(confint(trophicPD2)[2,],digits=8)` | `r round(coef(summary(trophicPD2))[2,3],digits=8)` |
-| PD | CV | `r round(coef(summary(trophicPD1))[2,1],digits=8)` |`r round(coef(summary(trophicPD1))[2,2],digits=8)` | `r round(confint(trophicPD1)[2,],digits=8)` | `r round(coef(summary(trophicPD1))[2,3],digits=8)` |
 | SPD | mean | `r round(coef(summary(trophicSPD3))[2,1],digits=8)` |`r round(coef(summary(trophicSPD3))[2,2],digits=8)` | `r round(confint(trophicSPD3)[2,],digits=8)` | `r round(coef(summary(trophicSPD3))[2,3],digits=8)` |
 | SPD | max | `r round(coef(summary(trophicSPD2))[2,1],digits=8)` |`r round(coef(summary(trophicSPD2))[2,2],digits=8)` | `r round(confint(trophicSPD2)[2,],digits=8)` | `r round(coef(summary(trophicSPD2))[2,3],digits=8)` |
 | SPD | CV | `r round(coef(summary(trophicSPD1))[2,1],digits=8)` |`r round(coef(summary(trophicSPD1))[2,2],digits=8)` | `r round(confint(trophicSPD1)[2,],digits=8)` | `r round(coef(summary(trophicSPD1))[2,3],digits=8)` |
@@ -662,12 +699,31 @@ hp.geoDirect$GeoGroup[hp.geoDirect$GEO %in% c("ANT","NEA","PAL")] <- "cool"
 hp.geoDirect$GeoGroup = factor(hp.geoDirect$GeoGroup,levels(factor(hp.geoDirect$GeoGroup))[c(2,1)])
 hp.geoDirect$GEO = factor(hp.geoDirect$GEO,levels(factor(hp.geoDirect$GEO))[c(1,3,4,6,2,5,7)])
 
-hp.geoDirect2 <- hp.geoDirect %>% filter(Complex == "No")
-geoDlong <- hp.geoDirect2 %>% gather("index","value",c(16:19,25))
-geoDlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
-geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+hp.geoDirect2 <- hp.geoDirect %>% filter(Complex == "No" & Trophic=="No")
+hp.geoDirect2$SES.PD <- hp.geoDirect2$pd.obs.z
+geoDlong <- hp.geoDirect2 %>% gather("index","value",c(16:19,29))
 
-geoDlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + theme(legend.position="none")
+# geoDlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_grid(index~.,scales="free") + xlab("Geographic region") + ylab("Generalism metric")
+
+d <- geoDlong %>% filter(!is.na(GEO) & index=="degree") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab(NULL) + ylab("degree") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+
+g <- geoDlong %>% filter(!is.na(GEO) & index=="G") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_count() + theme_bw() + xlab(NULL) + ylab("G") + theme(legend.position="none")
+# geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+spd <- geoDlong %>% filter(!is.na(GEO) & index=="SPD") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab(NULL) + ylab("SPD") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+sespd <- geoDlong %>% filter(!is.na(GEO) & index=="SES.PD") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab("Geographic region") + ylab("SES.PD") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+
+# lay=rbind(c(1),c(1),c(1),c(1),c(2))
+grid.arrange(d,g,spd,sespd,ncol=1)
+
+# geoDlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + theme(legend.position="none")
+
+jpeg("~/dat/generalismtheory/direct2.jpeg")
+grid.arrange(d,g,spd,sespd,ncol=1)
+dev.off()
+
+pdf("~/dat/generalismtheory/direct2.pdf")
+grid.arrange(d,g,spd,sespd,ncol=1)
+dev.off()
 
 ```
 
@@ -687,7 +743,6 @@ geoSESPD2 <- lm(data=hp.geoDirect2,pd.obs.z ~ GeoGroup)
 |--------|-----------|-------|------|-----|
 | degree |  `r round(coef(summary(geoD2))[2,1],digits=8)` |`r round(coef(summary(geoD2))[2,2],digits=8)` | `r round(confint(geoD2)[2,],digits=8)` | `r round(coef(summary(geoD2))[2,3],digits=8)` |
 | G |  `r round(coef(summary(geoG2))[2,1],digits=8)` |`r round(coef(summary(geoG2))[2,2],digits=8)` | `r round(confint(geoG2)[2,],digits=8)` | `r round(coef(summary(geoG2))[2,3],digits=8)` |
-| PD |  `r round(coef(summary(geoPD2))[2,1],digits=8)` |`r round(coef(summary(geoPD2))[2,2],digits=8)` | `r round(confint(geoPD2)[2,],digits=8)` | `r round(coef(summary(geoPD2))[2,3],digits=8)` |
 | SPD |  `r round(coef(summary(geoSPD2))[2,1],digits=8)` |`r round(coef(summary(geoSPD2))[2,2],digits=8)` | `r round(confint(geoSPD2)[2,],digits=8)` | `r round(coef(summary(geoSPD2))[2,3],digits=8)` |
 | SESPD |  `r round(coef(summary(geoSESPD2))[2,1],digits=8)` |`r round(coef(summary(geoSESPD2))[2,2],digits=8)` | `r round(confint(geoSESPD2)[2,],digits=8)` | `r round(coef(summary(geoSESPD2))[2,3],digits=8)` |
 
@@ -695,11 +750,37 @@ geoSESPD2 <- lm(data=hp.geoDirect2,pd.obs.z ~ GeoGroup)
 ```{r geotrophic_new, echo=FALSE}
 
 hp.geoTrophic <- hp.geoDirect %>% filter(Trophic == "Yes")
-geoTlong <- hp.geoTrophic %>% gather("index","value",c(16:19,25))
-geoTlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
-geoTlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+hp.geoTrophic$SES.PD <- hp.geoTrophic$pd.obs.z
+geoTlong <- hp.geoTrophic %>% gather("index","value",c(16:19,29))
 
-geoTlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + theme(legend.position="none")
+# geoTlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_grid(index~.,scales="free") + xlab("Geographic region") + ylab("Generalism metric")
+
+dt <- geoTlong %>% filter(!is.na(GEO) & index=="degree") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab(NULL) + ylab("degree") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+
+gt <- geoTlong %>% filter(!is.na(GEO) & index=="G") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_count() + theme_bw() + xlab(NULL) + ylab("G") + theme(legend.position="none")
+# geoDlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+spdt <- geoTlong %>% filter(!is.na(GEO) & index=="SPD") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab(NULL) + ylab("SPD") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+sespdt <- geoTlong %>% filter(!is.na(GEO) & index=="SES.PD") %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + xlab("Geographic region") + ylab("SES.PD") + theme(legend.position="none") #+ facet_grid(index~.,scales="free") 
+
+# lay=rbind(c(1),c(1),c(1),c(1),c(2))
+grid.arrange(dt,gt,spdt,sespdt,ncol=1)
+
+jpeg("~/dat/generalismtheory/trophic2.jpeg")
+grid.arrange(dt,gt,spdt,sespdt,ncol=1)
+dev.off()
+
+pdf("~/dat/generalismtheory/trophic2.pdf")
+grid.arrange(dt,gt,spdt,sespdt,ncol=1)
+dev.off()
+
+
+pdf("~/dat/generalismtheory/both2.pdf")
+lay2 <- rbind(c(1,5),c(2,6),c(3,7),c(4,8))
+
+# geoTlong %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+# geoTlong %>% filter(!is.na(GeoGroup)) %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") 
+# 
+# geoTlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGroup,y=value,color=GeoGroup)) + geom_boxplot() + theme_bw() + facet_wrap(~index,scales="free") + theme(legend.position="none")
 
 ```
 
@@ -710,7 +791,7 @@ geoTlong %>% filter(!is.na(GeoGroup) & index!="G") %>% ggplot(data=.,aes(x=GeoGr
 # geoSPD <- lm(data=hp.geoDirect,SPD ~ GEO) 
 geoD2T <- glm.nb(data=hp.geoTrophic,degree ~ GeoGroup) 
 geoG2T <- glm(data=hp.geoTrophic,G ~ GeoGroup,family="binomial") 
-geoPD2T <- lm(data=hp.geoTrophic,log(PD+0.01) ~ GeoGroup)
+# geoPD2T <- lm(data=hp.geoTrophic,log(PD+0.01) ~ GeoGroup)
 geoSPD2T <- lm(data=hp.geoTrophic,SPD ~ GeoGroup) 
 geoSESPD2T <- lm(data=hp.geoTrophic,pd.obs.z ~ GeoGroup) 
 ```
@@ -719,8 +800,37 @@ geoSESPD2T <- lm(data=hp.geoTrophic,pd.obs.z ~ GeoGroup)
 |--------|-----------|-------|------|-----|
 | degree |  `r round(coef(summary(geoD2T))[2,1],digits=8)` |`r round(coef(summary(geoD2T))[2,2],digits=8)` | `r round(confint(geoD2T)[2,],digits=8)` | `r round(coef(summary(geoD2T))[2,3],digits=8)` |
 | G |  `r round(coef(summary(geoG2T))[2,1],digits=8)` |`r round(coef(summary(geoG2T))[2,2],digits=8)` | `r round(confint(geoG2T)[2,],digits=8)` | `r round(coef(summary(geoG2T))[2,3],digits=8)` |
-| PD |  `r round(coef(summary(geoPD2T))[2,1],digits=8)` |`r round(coef(summary(geoPD2T))[2,2],digits=8)` | `r round(confint(geoPD2T)[2,],digits=8)` | `r round(coef(summary(geoPD2T))[2,3],digits=8)` |
 | SPD |  `r round(coef(summary(geoSPD2T))[2,1],digits=8)` |`r round(coef(summary(geoSPD2T))[2,2],digits=8)` | `r round(confint(geoSPD2T)[2,],digits=8)` | `r round(coef(summary(geoSPD2T))[2,3],digits=8)` |
 | SESPD |  `r round(coef(summary(geoSESPD2T))[2,1],digits=8)` |`r round(coef(summary(geoSESPD2T))[2,2],digits=8)` | `r round(confint(geoSESPD2T)[2,],digits=8)` | `r round(coef(summary(geoSESPD2T))[2,3],digits=8)` |
 
+## Distribution of host lengths by region
 
+```{r hostlengthregion, echo=FALSE}
+# geoDlong2 <- geoDlong %>% gather(length_measure,length,c(11,13,15))
+# geoDlong2 %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=length,color=GeoGroup)) + geom_boxplot() + theme_bw() + theme(legend.position="none") + facet_wrap(~length_measure)
+# 
+# geoTlong2 <- geoTlong %>% gather(length_measure,length,c(11,13,15))
+# geoTlong2 %>% filter(!is.na(GEO)) %>% ggplot(data=.,aes(x=GEO,y=length,color=GeoGroup)) + geom_boxplot() + theme_bw() + theme(legend.position="none") + facet_wrap(~length_measure)
+
+# pdf("~/dat/generalismtheory/geolength.pdf")
+# geoTlong %>% filter(!is.na(GEO) & index!="PD") %>% ggplot(data=.,aes(y=value,x=maxMaxL,color=GeoGroup)) + geom_point() + theme_bw() + theme(legend.position="none",axis.text.x = element_text(angle = 90, hjust = 1)) + facet_grid(index ~ GEO,scales="free_y") + geom_smooth(method="lm") + ggtitle("Trophic")
+# geoDlong %>% filter(!is.na(GEO) & index!="PD") %>% ggplot(data=.,aes(y=value,x=maxMaxL,color=GeoGroup)) + geom_point() + theme_bw() + theme(legend.position="none",axis.text.x = element_text(angle = 90, hjust = 1)) + facet_grid(index ~ GEO,scales="free_y") + geom_smooth(method="lm") + ggtitle("Direct")
+# dev.off()
+
+geoTlong$centermaxL <- scale(geoTlong$maxMaxL)
+summary(lm(data=geoTlong[geoTlong$index=="SES.PD",], value ~ centermaxL*GeoGroup))
+summary(lm(data=geoTlong[geoTlong$index=="SES.PD",], value ~ centermaxL*GEO))
+
+geoDlong$centermaxL <- scale(geoDlong$maxMaxL)
+summary(lm(data=geoDlong[geoDlong$index=="SES.PD",], value ~ centermaxL*GeoGroup))
+summary(lm(data=geoDlong[geoDlong$index=="SES.PD",], value ~ centermaxL*GEO))
+
+
+# summary(lm(data=geoDlong,meanMaxL ~ GeoGroup))
+# 
+# geoD2T <- glm.nb(data=hp.geoTrophic,degree ~ GEO*meanMaxL) 
+# geoG2T <- glm(data=hp.geoTrophic,G ~ GeoGroup,family="binomial") 
+# # geoPD2T <- lm(data=hp.geoTrophic,log(PD+0.01) ~ GeoGroup)
+# geoSPD2T <- lm(data=hp.geoTrophic,SPD ~ GeoGroup) 
+# geoSESPD2T <- lm(data=hp.geoTrophic,pd.obs.z ~ GeoGroup) 
+```
