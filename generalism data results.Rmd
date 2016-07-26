@@ -837,4 +837,7 @@ summary(lm(data=geoDlong[geoDlong$index=="SES.PD",], value ~ centermaxL*GEO))
 # # geoPD2T <- lm(data=hp.geoTrophic,log(PD+0.01) ~ GeoGroup)
 # geoSPD2T <- lm(data=hp.geoTrophic,SPD ~ GeoGroup) 
 # geoSESPD2T <- lm(data=hp.geoTrophic,pd.obs.z ~ GeoGroup) 
+
+# ggplot(data=hp.direct, aes(x=degree,fill=Endoparasite)) + geom_histogram()
+# table(hp.direct$Endoparasite,hp.direct$degree <= 4)
 ```
