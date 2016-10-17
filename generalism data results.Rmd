@@ -586,6 +586,35 @@ dev.off()
 
 ```
 
+```{r newanalysis,echo=FALSE,eval=TRUE,results="hide"}
+# October 17 for revision ************************************************************************************************************
+hp.geoDirect2$Transmission <- "Direct"
+hp.geoTrophic$Transmission <- "Trophic"
+alldat <- bind_rows(hp.geoDirect2,hp.geoTrophic)
+alldat$scalemeanmaxL <- scale(alldat$meanMaxL)
+alldat$scalemaxmaxL <- scale(alldat$maxMaxL)
+
+degreemod <- glm.nb(data=alldat,degree ~ scalemeanmaxL*Transmission*GeoGroup)
+Gmod <- glm(data=alldat,G ~ scalemeanmaxL*Transmission*GeoGroup,family="binomial")
+SPDmod <- lm(data=alldat,SPD ~ scalemeanmaxL*Transmission*GeoGroup)
+SESPDmod <- lm(data=alldat,pd.obs.z ~ scalemeanmaxL*Transmission*GeoGroup)
+
+degreemod2 <- glm.nb(data=alldat,degree ~ scalemaxmaxL*Transmission*GeoGroup)
+Gmod2 <- glm(data=alldat,G ~ scalemaxmaxL*Transmission*GeoGroup,family="binomial")
+SPDmod2 <- lm(data=alldat,SPD ~ scalemaxmaxL*Transmission*GeoGroup)
+SESPDmod2 <- lm(data=alldat,pd.obs.z ~ scalemaxmaxL*Transmission*GeoGroup)
+
+degreemod3 <- glm.nb(data=alldat,degree ~ cvmaxL*Transmission*GeoGroup)
+#Gmod3 <- glm(data=alldat,G ~ cvmaxL*Transmission*GeoGroup,family="binomial") # algorithm did not converge because this one doesn't exist
+SPDmod3 <- lm(data=alldat,SPD ~ cvmaxL*Transmission*GeoGroup)
+SESPDmod3 <- lm(data=alldat,pd.obs.z ~ cvmaxL*Transmission*GeoGroup)
+
+#****************************************************************************
+
+```
+
+
+
 ```{r directanalysis, echo=FALSE,eval=TRUE,results="hide"}
 
 directD1 <- glm.nb(data=hp.direct,degree ~ cvmaxL) # positive
