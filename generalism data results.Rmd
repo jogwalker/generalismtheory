@@ -609,6 +609,17 @@ degreemod3 <- glm.nb(data=alldat,degree ~ cvmaxL*Transmission*GeoGroup)
 SPDmod3 <- lm(data=alldat,SPD ~ cvmaxL*Transmission*GeoGroup)
 SESPDmod3 <- lm(data=alldat,pd.obs.z ~ cvmaxL*Transmission*GeoGroup)
 
+alltables <- data.frame(NULL)
+l <- list(degreemod,degreemod2,degreemod3,Gmod,Gmod2,SPDmod,SPDmod2,SPDmod3,SESPDmod,SESPDmod2,SESPDmod3)
+lname <- c("degreemod","degreemod2","degreemod3","Gmod","Gmod2","SPDmod","SPDmod2","SPDmod3","SESPDmod","SESPDmod2","SESPDmod3")
+for (i in 1:length(l)) {
+  mod <- l[[i]]
+  tab <- bind_cols(data.frame(round(coef(summary(mod))[,1],digits=3)),data.frame(round(confint(mod),digits=3)), data.frame(round(coef(summary(mod))[,3],digits=3)),data.frame(rep(mod$df.residual,8)),data.frame(rep(as.character(lname[i]),8)))
+  alltables <- bind_rows(alltables,tab)
+}
+names(alltables) <- c("coef", "low.ci","high.ci","z","df","mod")
+write.csv(alltables,file="multivartables.csv")
+
 #****************************************************************************
 
 ```
